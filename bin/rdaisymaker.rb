@@ -641,7 +641,14 @@ def main
 #         puts "Usage: #{$0} configfile(yaml)"
 #         exit 0
          yamls = Dir.glob("*.yaml")
-         puts "yaml ファイルが指定されないので、'#{yamls[0]}' を使用します。"
+         if 0 == yamls.size
+            script = File.basename($0)
+            puts "Usage: ruby #{script} configfile(yaml)"
+            puts "yaml ファイルが見つかりませんでした。"
+            exit 0
+         else
+            puts "yaml ファイルが指定されないので、'#{yamls[0]}' を使用します。"
+         end
       end
 
       yamlfile = ARGV[0].nil? ? yamls[0] : ARGV[0]
