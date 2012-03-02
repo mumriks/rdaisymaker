@@ -3,12 +3,12 @@
 #
 cdir = Dir.pwd
 bindir = File.expand_path("./bin", cdir)
-path32 = "c:/Program Files/Ruby-1.9.3/bin"
-path64 = "c:/Program Files (x86)/Ruby-1.9.3/bin"
-if File.exists?(path32)
-   rubypath = path32
-elsif File.exists?(path64)
-   rubypath = path64
+path1 = "c:/Program Files/Ruby-1.9.3/bin"
+path2 = "c:/Program Files (x86)/Ruby-1.9.3/bin"
+if File.exists?(path1)
+   rubypath = path1
+elsif File.exists?(path2)
+   rubypath = path2
 else
    puts "先に Ruby をインストールしてください。"
    exit 0
