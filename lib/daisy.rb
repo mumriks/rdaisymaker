@@ -1,10 +1,11 @@
 #!/usr/bin/env ruby
 # encoding: utf-8
 #
-# Copyright (c) 2011 Kishida Atsushi
+# Copyright (c) 2011, 2012 Kishida Atsushi
 #
 
 require 'date'
+require 'uuid'
 
 class Daisy
    def initialize(values)
@@ -57,8 +58,9 @@ class TEXTDaisy < Daisy
       }
       Dir.mkdir("#{@bookname}/image")
       @img_list.each {|i|
-         FileUtils.cp("#{i}", "#{@bookname}/image/#{i}")
-      }
+         FileUtils.cp("image/#{i}", "#{@bookname}/image/#{i}")
+       }
+      FileUtils.rm_r("image")
    end
 
    private
@@ -204,8 +206,9 @@ class Meta
       @photographer = values["pht"].nil? ? nil :values["pht"]
       @format = "ANSI/NISO Z39.86-2005"
       @language = "ja"
-      todaytime = DateTime.now.to_s
-      @iUid = todaytime.gsub(/\D/, '')[0..13]
+#      todaytime = DateTime.now.to_s
+#      @iUid = todaytime.gsub(/\D/, '')[0..13]
+      @iUid = UUID.create
    end
    attr_reader :title, :publisher, :date, :format, :language, :iUid, :isbn, :author, :translator, :editor, :illustlator, :photographer
 end
