@@ -40,6 +40,7 @@ end
 
 PTK = params["ptk"]
 GENERATOR =  params["generator"]
+puts "producer mode." if GENERATOR == PLEXTALK
 
 BINDIR = File.dirname(File.expand_path(__FILE__))
 $LOAD_PATH << File.join(BINDIR, "../lib")
@@ -75,15 +76,15 @@ def check_phrase_type(f)
          phr2 = phr.sub(/=+\s/, '')
          @p = Headline.new(phr2, args)
          unless @p.valid_args?
-            errmes = "レベルが深すぎます : #{File.basename(f)} line:#{@lineno}\n#{phr}"
-            print_error(errmes)
+            mes = "レベルが深すぎます : #{File.basename(f)} line:#{@lineno}\n#{phr}"
+            print_error(mes)
          end
-         new_chapter if args == 1
-         new_section
+         new_chapter() if args == 1
+         new_section()
          @sect.add_phrase(@p)
       when %r<\A//\}>
-         errmes = "ブロックのはじまりが見つかりません : \n#{File.basename(f)} line:#{@lineno}\n#{phr}"
-         print_error(errmes)
+         mes = "ブロックのはじまりが見つかりません : \n#{File.basename(f)} line:#{@lineno}\n#{phr}"
+         print_error(mes)
       when %r<\A//[a-z]+>
          read_type(phr, f)
       when /@<fn>/
@@ -167,23 +168,23 @@ def read_type(phr, f)
       phr, args = read_phrase(phr, f)
       sent_flat(phr, "underline")
    else
-      errmes = "未定義のタグです : //#{type}\n#{File.basename(f)} line:#{@lineno}\n#{phr}"
-      print_error(errmes)
+      mes = "未定義のタグです : //#{type}\n#{File.basename(f)} line:#{@lineno}\n#{phr}"
+      print_error(mes)
    end
 end
 
 def read_reftype(phrase)
-   errmes = "引数の文法が違うようです : #{phrase}\n#{File.basename(@f)} line:#{@lineno}"
+   mes = "引数の文法が違うようです : #{phrase}\n#{File.basename(@f)} line:#{@lineno}"
    if /@<fn>{([^{]+?)}/ =~ phrase
       args = $1
-      print_error(errmes)  unless /\A[a-z0-9_-]+\z/ =~ $1
+      print_error(mes)  unless /\A[a-z0-9_-]+\z/ =~ $1
       phr = phrase.sub(/@<fn>{[^{]+}/, '')
       @daisy.skippable.noteref = "false"
       p = Noteref.new(phr, args)
       @skip_list[args] << Skip.new(@f, @lineno, p)
    elsif @daisy.instance_of?(TEXTDaisy)
-      errmes = "使用できないタグです : #{phrase}\n#{File.basename(@f)} line:#{@lineno}"
-      print_error(errmes)
+      mes = "使用できないタグです : #{phrase}\n#{File.basename(@f)} line:#{@lineno}"
+      print_error(mes)
    elsif /@<an>\[([^\[]+)\]{([^{]+?)}/ =~ phrase
       args, keyword = $1, $2
       print_error(phrase)  unless /\A[a-z0-9_-]+\z/ =~ $1
@@ -193,7 +194,7 @@ def read_reftype(phrase)
       p = Annoref.new(phr, args)
       @skip_list[args] << Skip.new(@f, @lineno, p)
    else
-      print_error(errmes)
+      print_error(mes)
    end
    @sect.add_phrase(p)
 end
@@ -207,8 +208,8 @@ end
 def parse_args(str)
    return [] if str.empty?
    unless str[0,1] == '[' and str[-1,1] == ']'
-      errmes "引数の文法が違うようです : #{str}\n#{File.basename(@f)} line:#{@lineno}\n#{str}"
-      print_error(errmes)
+      mes "引数の文法が違うようです : #{str}\n#{File.basename(@f)} line:#{@lineno}\n#{str}"
+      print_error(mes)
       return []
    end
    str[1..-2].split('][', -1)
@@ -228,8 +229,8 @@ def read_block(f)
          buf.push line.rstrip
          c = c + 1
          if f.eof?
-            errmes = "ブロックの終りが見つかりませんでした。(始まりは #{buf})\n#{File.basename(@f)} line:#{@lineno}"
-            print_error(errmes)
+            mes = "ブロックの終りが見つかりませんでした。(始まりは #{buf})\n#{File.basename(@f)} line:#{@lineno}"
+            print_error(mes)
             return buf
          end
       end
@@ -243,8 +244,8 @@ end
 
 def check_args(args, type)
    unless 1 == args.size or 2 == args.size
-      errmes = "引数の文法が違うようです : #{type}[#{args}]\n#{File.basename(@f)} line:#{@lineno}"
-      print_error(errmes)
+      mes = "引数の文法が違うようです : #{type}[#{args}]\n#{File.basename(@f)} line:#{@lineno}"
+      print_error(mes)
    end
 end
 
@@ -337,8 +338,8 @@ def table_flat(phr, args)
 #=end
 # ^ caption
    else
-      errmes = "テーブルのデータがありません :  //table#{args}\n#{File.basename(@f)} line:#{@lineno}"
-      print_error(errmes)
+      mes = "テーブルのデータがありません :  //table#{args}\n#{File.basename(@f)} line:#{@lineno}"
+      print_error(mes)
    end
 end
 
@@ -352,7 +353,7 @@ def check_image(phr, args)
    em = {"errmes1" => "画像ファイルが指定されていません '//image[#{args}]{'",
     "errmes2" => "そのファイルは見つかりません : ",
     "errmes3" => "サポートされていない画像タイプです : ",
-    "errmes4" => " は画像サイズが大きすぎます : "}
+    "errmes4" => " は画像サイズが大きすぎます Max:#{Image::IMGWIDTH}*#{Image::IMGHEIGHT} : "}
    where = "\n#{File.basename(@f)} line:#{@lineno}"
    @imgcount = 0
    @imgids = ""
@@ -365,8 +366,8 @@ def check_image(phr, args)
          @o = Prodnote.new(phrase, render)
          result = @o.valid_render?
          unless result
-            errmes = "render の指定が違っているようです : [#{render}]" + where
-            print_error(errmes)
+            mes = "render の指定が違っているようです : [#{render}]" + where
+            print_error(mes)
          end
          @pnotes << @o
          @o.group = args[0]
@@ -434,8 +435,8 @@ def note_flat(phr, args, type)
          if 'Prodnote' == type
             result = pp.valid_render?
             unless result
-               errmes = "render の指定が違っているようです : [#{args}]\n#{File.basename(@f)} line:#{@lineno}"
-               print_error(errmes)
+               mes = "render の指定が違っているようです : [#{args}]\n#{File.basename(@f)} line:#{@lineno}"
+               print_error(mes)
             end
             next
          end
@@ -451,8 +452,8 @@ def note_flat(phr, args, type)
          if pp.instance_of?(Sidebar)
             result = pp.valid_render?
             unless result
-               errmes = "render の指定が違っているようです : [#{args}]\n#{File.basename(@f)} line:#{@lineno}"
-               print_error(errmes)
+               mes = "render の指定が違っているようです : [#{args}]\n#{File.basename(@f)} line:#{@lineno}"
+               print_error(mes)
             end
          end
       end
@@ -463,8 +464,8 @@ def note_flat(phr, args, type)
       end
    else
       type = 'footnote' if type == 'Note'
-      errmes = "注釈本文がありません : //#{type.downcase}#{args}\n#{File.basename(@f)} line:#{@lineno}"
-      print_error(errmes)
+      mes = "注釈本文がありません : //#{type.downcase}#{args}\n#{File.basename(@f)} line:#{@lineno}"
+      print_error(mes)
    end
 end
 
@@ -489,8 +490,8 @@ def check_same_args?
          t.each {|obj|
             tagstr = tagstr + "#{obj.phrase} //#{obj.namedowncase}[#{key}]\n"
          }
-         errmes = "異なるタグで同じ識別子を使っているようです :\n" + tagstr
-         print_error(errmes)
+         mes = "異なるタグで同じ識別子を使っているようです :\n" + tagstr
+         print_error(mes)
       end
    }
 end
@@ -512,14 +513,16 @@ def check_note_ref_order(skip_list)
          @sf = s.file
          @sl = s.lineno
          @so = s.obj
-         ref = i if s.obj.instance_of?(Noteref)
-         note = i if s.obj.instance_of?(Note) or s.obj.instance_of?(Notes)
-         ref = i if s.obj.instance_of?(Annoref)
-         note = i if s.obj.instance_of?(Annotation) or s.obj.instance_of?(Annotations)
+         ref = i if noteref?(s.obj) #s.obj.instance_of?(Noteref)
+#         note = i if s.obj.instance_of?(Note) or s.obj.instance_of?(Notes)
+         note = i if note?(s.obj) or notes?(s.obj)
+         ref = i if annoref?(s.obj) #s.obj.instance_of?(Annoref)
+#         note = i if s.obj.instance_of?(Annotation) or s.obj.instance_of?(Annotations)
+         note = i if annotation?(s.obj) or annotations?(s.obj)
       }
       if ref > note
-         errmes = "注釈と注釈番号の順序が反対のようです : [#{key}]\n#{@sf} line:#{@sl}\n#{@so.phrase}"
-         print_error(errmes)
+         mes = "注釈と注釈番号の順序が反対のようです : [#{key}]\n#{@sf} line:#{@sl}\n#{@so.phrase}"
+         print_error(mes)
       end
    }
 end
@@ -532,27 +535,27 @@ def check_note_ref_pare(skip_list)
          @sf = s.file
          @sl = s.lineno
          @so = s.obj
-         ref += 1 if s.obj.instance_of?(Noteref)
-         note += 1 if s.obj.instance_of?(Note)
-         note += 1 if s.obj.instance_of?(Notes)
-         ref += 1 if s.obj.instance_of?(Annoref)
-         note += 1 if s.obj.instance_of?(Annotation)
-         note += 1 if s.obj.instance_of?(Annotations)
+         ref += 1 if noteref?(s.obj) #s.obj.instance_of?(Noteref)
+         note += 1 if note?(s.obj) #s.obj.instance_of?(Note)
+         note += 1 if notes?(s.obj) #s.obj.instance_of?(Notes)
+         ref += 1 if annoref?(s.obj) #s.obj.instance_of?(Annoref)
+         note += 1 if annotation?(s.obj) #s.obj.instance_of?(Annotation)
+         note += 1 if annotations?(s.obj) #s.obj.instance_of?(Annotations)
       }
       unless ref == 0
-         errmes = ""
+         mes = ""
          if ref > 1
-            errmes = "同じ識別子を持った注釈番号が複数あるようです [#{key}]\n#{@sf} line:#{@sl}\n#{@so.phrase}"
-            print_error(errmes)
+            mes = "同じ識別子を持った注釈番号が複数あるようです [#{key}]\n#{@sf} line:#{@sl}\n#{@so.phrase}"
+            print_error(mes)
          elsif note > 1
-            errmes = "同じ識別子を持った注釈が複数あるようです [#{key}]\n#{@sf} line:#{@sl}\n#{@so.phrase}"
-            print_error(errmes)
+            mes = "同じ識別子を持った注釈が複数あるようです [#{key}]\n#{@sf} line:#{@sl}\n#{@so.phrase}"
+            print_error(mes)
          elsif ref > note
-            errmes = "注釈番号 [#{key}] に対応する注釈が見つかりません \n#{@sf} line:#{@sl}\n#{@so.phrase}"
-            print_error(errmes)
+            mes = "注釈番号 [#{key}] に対応する注釈が見つかりません \n#{@sf} line:#{@sl}\n#{@so.phrase}"
+            print_error(mes)
          elsif ref < note
-            errmes = "注釈番号 [#{key}] に対応する注釈が複数あるようです \n#{@sf} line:#{@sl}\n#{@so.phrase}"
-            print_error(errmes)
+            mes = "注釈番号 [#{key}] に対応する注釈が複数あるようです \n#{@sf} line:#{@sl}\n#{@so.phrase}"
+            print_error(mes)
          end
       end
    }
@@ -562,19 +565,22 @@ def set_note_ref_chain
    child = nil
    @skip_list.each {|key, skip|
       skip.reverse_each {|s|
-         if s.obj.instance_of?(Notes) or s.obj.instance_of?(Annotations)
+#         if s.obj.instance_of?(Notes) or s.obj.instance_of?(Annotations)
+         if notes?(s.obj) or annotations?(s.obj)
             s.obj.notes.reverse.each {|n|
                unless child.nil?
                   n.child = child
                end
                child = n
             }
-         elsif s.obj.instance_of?(Note) or s.obj.instance_of?(Annotation)
+#         elsif s.obj.instance_of?(Note) or s.obj.instance_of?(Annotation)
+         elsif note?(s.obj) or annotation?(s.obj)
             unless child.nil?
                s.obj.child = child
             end
             child = s.obj
-         elsif s.obj.instance_of?(Noteref) or s.obj.instance_of?(Annoref)
+#         elsif s.obj.instance_of?(Noteref) or s.obj.instance_of?(Annoref)
+         elsif noteref?(s.obj) or annoref?(s.obj)
             unless child.nil?
                s.obj.child = child
             end
@@ -591,7 +597,8 @@ def set_readid
       chapter.sections.each {|section|
          readid = 0
          section.phrases.each {|phr|
-            if phr.instance_of?(Noteref)
+#            if phr.instance_of?(Noteref)
+            if noteref?(phr)
                totalid += 1
                readid += 1
                phr.totalid = totalid
@@ -625,14 +632,32 @@ def set_readid
    }
 end
 
-def parag?(phr)
-   phr.instance_of?(Paragraph)
+def note?(obj)
+   obj.instance_of?(Note)
 end
-def image?(phr)
-   phr.instance_of?(Image)
+def notes?(obj)
+   obj.instance_of?(Notes)
 end
-def imggrp?(phr)
-   phr.instance_of?(ImageGroup)
+def noteref?(obj)
+   obj.instance_of?(Noteref)
+end
+def annotation?(obj)
+   obj.instance_of?(Annotation)
+end
+def annotations?(obj)
+   obj.instance_of?(Annotations)
+end
+def annoref?(obj)
+   obj.instance_of?(Annoref)
+end
+def parag?(obj)
+   obj.instance_of?(Paragraph)
+end
+def image?(obj)
+   obj.instance_of?(Image)
+end
+def imggrp?(obj)
+   obj.instance_of?(ImageGroup)
 end
 
 def main
@@ -657,18 +682,17 @@ def main
 
       bookname = File.basename(yamlfile, ".yaml")
       if File.exist?(bookname)
-         errmes = "#{bookname} ディレクトリが既に存在します。先に削除するか名前を変えてから実行してください。"
-         print_error(errmes)
+         mes = "#{bookname} ディレクトリが既に存在します。先に削除するか名前を変えてから実行してください。"
+         print_error(mes)
       end
       Dir.mkdir(bookname)
-
       case values["multimediaType"]
       when /textNCX/
          @daisy = TEXTDaisy.new(values)
       else
 #        @daisy = Daisy.new(values)
-         errmes = "残念ですが、今のところテキストデイジーにしか対応していません。"
-         print_error(errmes)
+         mes = "残念ですが、今のところテキストデイジーにしか対応していません。"
+         print_error(mes)
       end
       @daisy.bookname = bookname
       @sectcount = 0
@@ -687,8 +711,8 @@ def main
             }
          }
       else
-         errmes = "SECTIONS ファイルが見つかりません。作成してから再実行してください。"
-         print_error(errmes)
+         mes = "SECTIONS ファイルが見つかりません。作成してから再実行してください。"
+         print_error(mes)
       end
       check_same_args?
       skippable_check()
@@ -701,8 +725,8 @@ def main
    rescue => err
       STDERR.puts err
       FileUtils.rm_r(bookname) if debug == nil
+      FileUtils.rm_r("image") if debug == nil
    end
-
 end
 
 main

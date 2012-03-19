@@ -138,6 +138,7 @@ class Image < PhraseTag
 
    def valid_image?
       return 'errmes1' if @phrase.nil?
+      Dir.mkdir("image") unless File.exist?("image")
       check_imagefile()
    end
    def compile_xml(daisy, file, sectcount)
@@ -162,10 +163,9 @@ class Image < PhraseTag
             bn = bn.succ
          end
          basename = bn
-#         puts "'#{filename}' name change to '#{basename}#{extname}'"
-         FileUtils.cp(@phrase, "#{basename}#{extname}")
          puts "'#{@phrase}' のファイル名を '#{basename}#{extname}' に変更しました。"
       end
+      FileUtils.cp(@phrase, "image/#{basename}#{extname}")
       @phrase = "#{basename}#{extname}"
       check_imagesize()
    end
@@ -175,7 +175,7 @@ class Image < PhraseTag
    end
    def get_image_size
       i_size = []
-      File.open(@phrase, "rb"){|img|
+      File.open("image/#{@phrase}", "rb"){|img|
          i_size = ImageSize.new(img.read).get_size
       }
       return i_size[0], i_size[1]
