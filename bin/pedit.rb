@@ -25,7 +25,10 @@ $LOAD_PATH.each {|path|
    end
 }
 
-WORDS_BY_PAGE = 800
+WORDS = 600
+POEM = 200
+STARTPAGE = 1
+@words_per_page = WORDS
 
 def print_(message)
    if @params["log"]
@@ -35,7 +38,7 @@ def print_(message)
    end
 end
 
-@params = {"aozora" => nil, "paging" => nil, "split" => true, "ruby" => nil, "bouten" => nil, "log" => nil, "cuttag" => nil, "cutpage" => nil}
+@params = {"aozora" => nil, "paging" => nil, "split" => true, "ruby" => nil, "bouten" => nil, "log" => nil, "cuttag" => nil, "cutpage" => nil, "poem" => nil}
 parser = OptionParser.new
 scriptfile = File.basename($0)
 parser.banner = "Usage: ruby #{scriptfile} [options]"
@@ -68,6 +71,12 @@ parser.on('-p', '--paging', '自動でページを挿入') {
 parser.on('--nopaging', 'ページ挿入しない') {
    @params["paging"] = false
 }
+parser.on('--poem', 'ページ挿入を詩篇モードで行う') {
+   if @params["paging"]
+      @params["poem"] = true
+      @words_per_page = POEM
+   end
+}
 parser.on('-r', '--rubya', 'ルビを振る（青空文庫 形式）') {
    if @mecabso
       @params["ruby"] = "aozora"
@@ -95,6 +104,12 @@ parser.on('-c', '--cutunknown', '未知の青空文庫タグを削除（要 -a�
 parser.on('--cutpage', '青空文庫の改ページタグを削除（要 -a）') {
    @params["cutpage"] = true if @params["aozora"]
 }
+####
+parser.on('--join','join split line(like PDF => TXT)') {
+   @params["join"] = true
+   @params["split"] = false
+}
+####
 parser.on('-l', '--log', 'ログファイル作成') {
    @params["log"] = true
 }
@@ -136,14 +151,21 @@ def load_gaiji
    }
 end
 
+def join(line)				##
+   if /[^。」]\n/ =~ line
+     line.chomp! unless /\d+(?:ページ|ぺーじ)/ =~ line
+   end
+   return line
+end					##
+
 def aozora(line)
    @linenum += 1
 #   @genpon = true if /原本奥付/ =~ line
 #   line = genpon_head(line) if /^底本：/ =~ line and !@genpon
 #   line = set_head(line) if /^　　　+/ =~ line
    while /［＃.+］/ =~ line
-      if /［＃.*(?:同行|窓)*(?:大|中|小)見出し.*］/ =~ line
-         line, mes = set_head(line)
+      if /［＃[^［]*(?:字下げ|字上げ|天付き|地付き|右寄せ).*］/ =~ line
+         line, mes = set_indent(line)
       elsif /※［＃[^［]+］/ =~ line
          line, result, mes = set_gaiji(line)
          unless result
@@ -151,14 +173,14 @@ def aozora(line)
             print_(mes)
             break
          end
+      elsif /［＃.*(?:同行|窓)*(?:大|中|小)見出し.*］/ =~ line
+         line, mes = set_head(line)
       elsif /［＃[^［]*(?:太字|斜体|下線|傍線)[^［]*］/ =~ line
          line, mes = set_modify(line)
       elsif /［＃([^［]+図|挿絵)（([^（]+\.\w+)[^（]*）入る.*］/ =~ line
          line, mes = set_image(line, $1, $2)
       elsif /［＃(?:ここから|ここで)罫囲み(?:終わり)?］/ =~ line
          line, mes = set_quote(line)
-      elsif /［＃[^［]*(?:字下げ|字上げ|天付き|地付き|右寄せ).*］/ =~ line
-         line, mes = set_indent(line)
       elsif /［＃[^［]*傍点[^［]*］/ =~ line
          if @params["bouten"].nil?
             mes = "傍点の処理が指定されていないので残します。:#{@f} line- #{@linenum}\n#{line}\n"
@@ -170,10 +192,10 @@ def aozora(line)
          else
             line, mes = set_modify(line)
          end
-      elsif /［＃改(?:丁|ページ)］/ =~ line
+      elsif /［＃改(?:丁|ページ|段)］/ =~ line
          if @params["cutpage"]
             mes = "指示によりページタグを削除します。:#{@f} line- #{@linenum}\n#{line}\n"
-            line.gsub!(/［＃改(?:丁|ページ)］/, "")
+            line.gsub!(/［＃改(?:丁|ページ|段)］/, "")
          else
             mes = "図書作成時のページ挿入に使用するため残します。:#{@f} line- #{@linenum}\n#{line}\n"
             print_(mes)
@@ -192,6 +214,16 @@ def aozora(line)
       print_(mes)
    end
    count_up(line)
+   if 0 < @head
+      if /^=+\s$/ =~ line
+         line.gsub!(/\n/, "")
+      elsif 2 < @head
+         line = "<br />" + line.gsub(/\n/, "")
+      else
+         line = line.gsub(/\n/, "")
+      end
+      @head += 1
+   end
    line
 end
 
@@ -248,13 +280,23 @@ def set_head(line)
       line = head + line
       line.gsub!(/［＃[^［]+］/, "")
       mes = "#{str}見出しとして処理しました。:#{@f} line- #{@linenum}\n#{line}\n"
-   elsif /\A［＃(大|中|小)見出し］([^［]+)［＃.+見出し終わり］\z/ =~ line
+   elsif /［＃(大|中|小)見出し］([^［]+)［＃.+見出し終わり］/ =~ line
       str = $1
       head = check_head(str)
-      line = head + $2
+      line = head + $2 + "\n"
       mes = "#{str}見出しとして処理しました。:#{@f} line- #{@linenum}\n#{line}\n"
-   elsif /\A［＃(?:ここから|ここで)(大|中|小)見出し(?:終わり)*］/ =~ line
-      mes = "処理が未定のため残しています。:#{@f} line- #{@linenum}\n#{line}\n"
+#   elsif /［＃(?:ここから|ここで)(大|中|小)見出し(?:終わり)*］/ =~ line
+#      mes = "処理が未定のため残しています。:#{@f} line- #{@linenum}\n#{line}\n"
+   elsif /［＃ここから(大|中|小)見出し］/ =~ line
+      str = $1
+      head = check_head(str)
+      mes = "＊ここから#{str}見出しとして処理します。＊:#{@f} line- #{@linenum}\n#{line}\n"
+      line = head + line.sub(/［＃ここから(?:大|中|小)見出し］/, "")
+      @head = 1
+   elsif /［＃ここで(?:大|中|小)見出し終わり］/ =~ line
+      mes = "＊ここまでを#{str}見出しとして処理しました。＊:#{@f} line-#{@linenum}\n#{line}\n"
+      line.sub!(/［＃ここで(?:大|中|小)見出し終わり］/, "")
+      @head = 0
    elsif /^　　　+/ =~ line
       line = "= " + line
       mes = "見出しとして処理します。 :#{@f} line- #{@linenum}\n#{line}\n"
@@ -346,7 +388,7 @@ end
 
 def set_indent(line)
    mes = "インデントは非対応のため削除します。:#{@f} line- #{@linenum}\n#{line}\n"
-   line.gsub!(/［＃[^［]*(?:字下げ|字上げ|天付き|地付き)?(?:終わ?り)?］/, "")
+   line.sub!(/［＃[^［]*(?:字下げ|字上げ|天付き|地付き)?(?:終わ?り)?］/, "")
    return line, mes
 end
 
@@ -395,28 +437,32 @@ end
 
 def count_up_words(line)
    l = line.gsub(/\n/, "")
-   @words = @words + l.size
+   @words = @words + l.size unless /［＃改(?:丁|ページ|段)］/ =~ line
 end
 
 def paging(line)
    count_up_words(line)
    if @params["ruby"]
-      words_by_page = WORDS_BY_PAGE * 2
+      words_per_page = @words_per_page * 2
    else
-      words_by_page = WORDS_BY_PAGE
+      words_per_page = @words_per_page
    end
-   if /\A=+\s/ =~ line and @linenum > 2
+   if /\A=+\s/ =~ line and 0 < @words #and 2 < @linenum
       l = line.gsub(/\n/, "").size
       unless 0 == @words - l
          line = add_page_befour(line)
          @words = 0
       end
-   elsif /［＃改(?:丁|ページ)］/ =~ line
-      line = add_page_replace(line)
+   elsif /［＃改(?:丁|ページ|段)］/ =~ line
+      if 0 < @words
+         line = add_page_replace(line)
+      else
+         line = "\n"
+      end
       @words = 0
-   elsif words_by_page < @words
-      @words = 0
+   elsif words_per_page < @words
       line = add_page_after(line)
+      @words = 0
    end
    line
 end
@@ -546,7 +592,11 @@ end
 def new_line(lines)
    new_line = ""
    lines.each {|l|
-      new_line = new_line + l
+      if @params["paging"]
+         new_line = new_line + paging(l)
+      else
+         new_line = new_line + l
+      end
    }
    line = new_line
 end
@@ -570,6 +620,8 @@ def edit(file)
    @imgnum = 0
    @linenum = 0
    @words = 0
+   @head = 0
+   @poemline = 0
    File.open("#{source_fname}", "r:UTF-8") {|f|
       f.each_line {|line|
          @lineno += 1
@@ -584,14 +636,12 @@ def edit(file)
                lines[i] = split4ruby(line)
             }
             line = new_line(lines)
-            line = paging(line) if @params["paging"]
          elsif @params["split"]
             lines = split_period(line)
             lines.each_with_index {|line, i|
                lines[i] = split4ruby(line)
             }
             line = new_line(lines)
-            line = paging(line) if @params["paging"]
          elsif @params["paging"]
             line = addRuby(line) + "\n" if @params["ruby"]
             line = paging(line)
@@ -599,10 +649,16 @@ def edit(file)
             line = addRuby(line)
          elsif @params["wakati"]
             line = wakati(line)
+         elsif @params["join"]			##
+            line = join(line)			##
          end
-         @efile.puts line
+         if @params["join"] or 0 < @head	##
+            @efile.print line			##
+         else					##
+            @efile.puts line
+         end					##
       }
-      @efile.puts(paging("［＃改ページ］"))
+      #@efile.puts(paging("［＃改ページ］")) if @params["paging"]
    }
 end
 
@@ -613,7 +669,7 @@ end
 def main
    startMecab if @params["wakati"] or @params["ruby"]
    @lineno = 0
-   @pagenum = 0
+   @pagenum = STARTPAGE
    if ARGV.size != 0
       ARGV.each {|file|
          edit(file)
