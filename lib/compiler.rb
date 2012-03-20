@@ -221,7 +221,9 @@ EOT
    def compile_caption(phr, xmlfile, sectcount)
       smilstr, idstr = compile_id(sectcount, phr)
       phr.ncxsrc = smilstr
-      xmlfile.puts(indent(%Q[<caption id="#{idstr}" smilref="#{smilstr}" imgref="#{phr.ref}">#{phr.phrase}</caption>], @xindent))
+      xmlfile.puts(indent(%Q[<caption imgref="#{phr.ref}">], @xindent))
+      xmlfile.puts(indent(%Q[<sent id="#{idstr}" smilref="#{smilstr}">#{phr.phrase}</sent>], @xindent + 2))
+      xmlfile.puts(indent(%Q[</caption>], @xindent))
    end
 
    def compile_imagegroup(phr, xmlfile)
@@ -354,11 +356,13 @@ EOT
          when '<u>'
             tag = tag_underline(args)
          else
+#            print_error("unknown inline tag: #{str}")
             print_error("未定義のインラインタグです : #{str}")
          end
          str.sub!(/@#{type}{#{args}}/, tag)
       end
       if /@<\w+>/ =~ str
+#         print_error("inline tag syntax error: #{str}")
          print_error("インラインタグの文法が違っているようです : #{str}")
       end
       str
@@ -384,10 +388,12 @@ EOT
       rubytag = "@<ruby>{#{k},#{r}}" if 'review' == type
       rubytag = "#{k}《#{r}》" if 'daisy' == type
       unless /#{KANA}+/ =~ r
+#         errmes = "ruby syntax kana error: #{rubytag}"
          errmes = "ルビタグの読み部分が違っているようです : #{rubytag}"
          print_error(errmes)
       end
       unless /#{KANJI}+/ =~ k
+#         errmes = "ruby syntax kanji error: #{rubytag}"
          errmes = "ルビタグの漢字部分が違っているようです : #{rubytag}"
          print_error(errmes)
       end
