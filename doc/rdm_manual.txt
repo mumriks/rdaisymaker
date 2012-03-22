@@ -32,6 +32,9 @@
         ・image_size ライブラリ -------------- 必須
          （http://rubyforge.org/frs/?group_id=3460）
 
+        ・uuid ライブラリ -------------------- 必須
+          (https://github.com/shyouhei/ruby-uuid)
+
         ・MeCab ------------------------------ ルビ振りするなら必須
         ・MeCab-Ruby バインディング ---------- 　　　　同上
 

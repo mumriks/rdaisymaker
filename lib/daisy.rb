@@ -60,7 +60,7 @@ class TEXTDaisy < Daisy
       @img_list.each {|i|
          FileUtils.cp("image/#{i}", "#{@bookname}/image/#{i}")
        }
-      FileUtils.rm_r("image")
+      FileUtils.rm_r("image") if File.exist?("image")
    end
 
    private
