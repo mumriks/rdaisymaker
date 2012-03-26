@@ -611,8 +611,8 @@ def set_readid
                   p.child.readid = readid
                   p = p.child
                end
-               phr.child.totalid = totalid
-               phr.child.readid = readid
+#               phr.child.totalid = totalid
+#               phr.child.readid = readid
 #            elsif phr.instance_of?(Note)
 #               totalid += 1
 #               readid += 1
