@@ -1,15 +1,14 @@
 # encoding: utf-8
 # mecab-ruby の文字コードを補完
-# Copyright (c) 2012 Kishida Atsushi
-#
+
 require 'MeCab'
 
 module MeCab
    class Model
 =begin
-      def dictionary_info
+      def dictionary_info()
       end
-      def createTagger
+      def createTagger()
       end
       def createLattice
       end
@@ -73,8 +72,8 @@ module MeCab
          $enc = arg.encoding if arg.instance_of?(String)
          set_sentence(arg)
       end
-      def toStringEx
-         self.toString.force_encoding($enc)
+      def toStringEx()
+         self.toString().force_encoding($enc)
       end
 =begin
       def clear; end

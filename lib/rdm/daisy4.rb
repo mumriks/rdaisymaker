@@ -1,0 +1,311 @@
+# encoding: utf-8
+# Copyright (c) 2012 Kishida Atsushi
+#
+
+class TEXTDaisy4 < Daisy4
+
+   def initialize(values)
+      super
+      @xmeta.multimediaType = "textstream"
+      @meta.format = "EPUB3"
+   end
+
+   def build_cover(file)
+      File.open("#{@c_path}/cover.xhtml", "w:UTF-8") {|xf|
+         @xfile = xf
+         File.open(file, "r:UTF-8") {|f|
+            f.each_line {|line|
+               @cover_image = check_imagefile(line.chomp)
+               File.rename("#{@i_path}/#{line.chomp}", "#{@i_path}/#{@cover_image}")
+               cover_page(@cover_image)
+               return
+            }
+         }
+      }
+   end
+   def build_daisy
+      build_xhtml_smil()
+   end
+   def build_ncx
+      build_text_nav()
+   end
+   def build_opf
+      build_text_opf()
+   end
+   def mk_temp(temp)
+      @temp = temp
+      @m_path = "#{@temp}/#{@bookname}/META-INF"
+      @i_path = "#{@temp}/#{@bookname}/Publication/Images"
+      @s_path = "#{@temp}/#{@bookname}/Publication/Styles"
+      @c_path = "#{@temp}/#{@bookname}/Publication/Content"
+      @p_path = "#{@temp}/#{@bookname}/Publication"
+      [@m_path, @i_path, @s_path, @c_path].each {|path|
+         FileUtils.mkdir_p(path)
+      }
+   end
+   def copy_files
+      ["horizontal", "vertical"].each {|type|
+         distpath = "#{@s_path}/#{@bookname}_#{type}.css"
+         srcpath = File.join(BINDIR, "../doc/common_#{type}.css")
+         FileUtils.cp(srcpath, distpath)
+      }
+#      distpath = "#{@s_path}/#{@bookname}.css"
+#      FileUtils.cp(File.join(BINDIR, "../doc/common.css"), distpath)
+      build_other_file()
+      build_epub3()
+   end
+   def copy_image(image, dstname)
+      FileUtils.cp(image, "#{@i_path}/#{dstname}")
+   end
+   def check_imagefile(image)
+      return 'errmes2' unless File.exist?(image)
+      basename = File.basename(image, ".*")
+      extname = File.extname(image)
+      return 'errmes3' unless /\.jpe*g|\.png/ =~ extname
+      extname = '.jpg' if '.jpeg' == extname
+      width, height = get_image_size(image)
+      mes = "#{image} (#{width}*#{height}) はやや大きいですが処理します。"
+      puts mes unless IMGHEIGHT >= height
+      puts mes unless IMGWIDTH >= width
+      copy_image(image, "#{basename}#{extname}")
+      return "#{basename}#{extname}"
+   end
+
+   private
+
+   def build_xhtml_smil
+      @chapcount = 0
+      @sectcount = 0
+      self.book.each {|chapter|
+         @level = 1
+         @chapcount += 1
+         @tnum = 0
+         xhtmlfile = "#{@c_path}/#{PTK}#{self.zerosuplement(@chapcount, 5)}.xhtml"
+         File.open(xhtmlfile, "w:UTF-8") {|xf|
+            @xfile = xf
+            xml_header()
+            chapter.sections.each {|section|
+               @sectcount += 1
+               smilfile = "#{@c_path}/#{PTK}#{self.zerosuplement(@sectcount, 5)}.smil"
+               File.open(smilfile, "w:UTF-8") {|sf|
+                  @sfile = sf
+                  section.phrases.each {|phr|
+                     unless phr.instance_of?(ImageGroup) or phr.instance_of?(Quote)
+                        phr.phrase = compile_daisy_ruby(phr.phrase)
+                        phr.phrase = compile_inline_tag(phr.phrase)
+                     end
+                     phr.unify_period
+                     phr.compile_xml(self)
+                  }
+                  smil_header()
+                  readphr = []
+                  section.phrases.each {|phr|
+                     unless phr.readid == nil
+                        readphr << phr
+                     end
+                  }
+                  readphr.sort_by{|p| p.readid}.each {|phr|
+                     phr.compile_smil(self)
+                  }
+                  smil_footer()
+               }
+            }
+            xml_footer()
+         }
+      }
+   end
+
+   def build_text_nav
+      collect_ncx_data()
+      navfile = "#{@p_path}/toc.xhtml"
+      File.open(navfile, "w:UTF-8") {|nf|
+         @nf = nf
+         build_nav_header()
+         build_nav_pre()
+         level = 0
+         indent = 4
+         @headlines.each_with_index {|h, i|
+            h.adjust_ncx
+            if 0 == i
+               build_nav_section_root_pre(indent)
+               build_nav_headline(h, indent + 2)
+               level = h.args
+               indent += 2
+            elsif level < h.args
+               build_nav_section_root_pre(indent + 2)
+               build_nav_headline(h, indent + 4)
+               level = h.args
+               indent += 4
+            elsif level == h.args
+               build_nav_list_post(indent)
+               build_nav_headline(h, indent)
+            elsif level > h.args
+               build_nav_list_post(indent)
+               build_nav_section_root_post(indent - 2)
+               build_nav_list_post(indent - 4)
+               build_nav_headline(h, indent - 4)
+               build_nav_list_post(indent - 4)
+               build_nav_section_root_post(indent - 6)
+               level = h.args
+               indent -= 6
+            elsif @headlines[i + 1] == nil
+               if h.args >= @headlines[i + 1].args
+                  s = h.args
+                  e = @headlines[i + 1].args
+                  s.downto(e) {|l|
+                     build_nav_list_post(indent)
+                     build_nav_section_root_post(l - 2)
+                     indent -= 2
+                  }
+               end
+            end
+         }
+         build_nav_post()
+         if @pages
+            build_nav_pagelist_pre()
+            build_nav_section_root_pre(indent)
+            indent += 2
+            @pages.each {|n|
+               if /normal|front|special/ =~ n.namedowncase
+                  build_nav_list_pre(indent)
+                  build_nav_item_page(n, indent + 2)
+                  build_nav_list_post(indent)
+               end
+            }
+            build_nav_section_root_post(indent - 2)
+            build_nav_post()
+         end
+=begin
+      @ncxnotetype.each {|t|
+         num = 1
+         build_ncx_navlist_pre(t)
+         @ncxnote.each {|n|
+            if t == n.namedowncase
+               build_ncx_navlist(n, num)
+               num += 1
+            end
+         }
+         build_ncx_navlist_post()
+      }
+=end
+         build_nav_footer()
+      }
+   end
+
+   def build_text_opf
+      opffile = "#{@p_path}/package.opf"
+      File.open(opffile, "w:UTF-8") {|of|
+         @of = of
+         build_opf_header()
+         build_opf_meta()
+         build_opf_manifest_pre()
+         build_nav_manifest()
+         if File.exist?("#{@c_path}/cover.xhtml")
+            build_cover_page_manifest()
+         end
+
+         num = 1
+         sectnum = 0
+         chapnum = @book.size
+         @book.each {|chapter|
+            sectnum = sectnum + chapter.sections.size
+         }
+         spinenum = num
+         chapnum.times {|c|
+            xhtml = "Content/#{PTK}#{zerosuplement(c + 1,5)}.xhtml"
+            type = "application/xhtml+xml"
+            build_manifest_item(type, "item_#{num}", xhtml)
+            num = num + 1
+         }
+#      spinenum = num
+         sectnum.times {|s|
+            smil = "Content/#{PTK}#{zerosuplement(s + 1,5)}.smil"
+            type = "application/smil+xml"
+            build_manifest_item(type, "item_#{num}", smil)
+            num = num + 1
+         }
+
+         unless @cover_image.nil?
+            type = check_img_type(@cover_image)
+            idstr = "cover#{File.extname(@cover_image)}"
+            build_cover_item(type, idstr, "Images/#{@cover_image}")
+         end
+         if 0 < @img_list.size
+            @img_list.each {|img|
+               type = check_img_type(img)
+               build_manifest_item(type, "item_#{num}", "Images/#{img}")
+               num = num + 1
+            }
+         end
+
+         build_opf_manifest_post()
+
+         build_opf_spine_pre()
+         chapnum.times {|c|
+            build_opf_spine("item_#{spinenum}", "itemref_#{c + 1}")
+            spinenum = spinenum + 1
+         }
+         build_opf_spine("navi", "itemref_#{chapnum + 1}")
+         build_opf_spine_post()
+
+         build_opf_package_post()
+      }
+   end
+
+   def build_other_file
+#      build_mimetype()
+      build_container()
+   end
+   def build_mimetype
+      mimetype = "#{@temp}/#{@bookname}/mimetype"
+      File.open(mimetype, "w:UTF-8"){|f|
+         f.print("application/epub+zip")
+      }
+   end
+   def build_container
+      container = "#{@m_path}/container.xml"
+      File.open(container, "w:UTF-8"){|f|
+         f.puts <<EOT
+<?xml version="1.0" encoding="utf-8"?>
+<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container" version="1.0">
+   <rootfiles>
+      <rootfile full-path="Publication/package.opf" media-type="application/oebps-package+xml"/>
+   </rootfiles>
+</container>
+EOT
+      }
+   end
+
+   def build_epub3
+      basedir = Dir.pwd
+# ziprubytype
+      Dir.chdir("#{@temp}/#{@bookname}")
+      Zip::ZipOutputStream.open("#{@bookname}.epub") {|zos|
+         zos.put_next_entry("mimetype","","", 0, 0)
+         zos.print "application/epub+zip"
+      }
+
+      Zip::ZipFile.open("#{@bookname}.epub", Zip::ZipFile::CREATE) {|zf|
+         zf.add("META-INF/container.xml", "META-INF/container.xml")
+         ["Publication/Images/*", "Publication/Content/*",
+          "Publication/Styles/*", "Publication/*"].each {|dir|
+            Dir.glob(dir).each {|path|
+               unless File.directory?(path)
+                  zf.add(path, path)
+               end
+            }
+         }
+      }
+      Dir.chdir(basedir)
+      FileUtils.mv("#{@temp}/#{@bookname}/#{@bookname}.epub", "#{@bookname}.epub")
+# ^^ ziprubytype
+
+#      Zip::Archive.open("#{@bookname}.epub") {|ar|
+#         ar.add_file("#{@temp}/#{@bookname}/mimetype")
+#         ar.add_dir("#{@m_path}")
+#         ar.add_dir("#{@p_path}")
+#      }
+   end
+
+
+end

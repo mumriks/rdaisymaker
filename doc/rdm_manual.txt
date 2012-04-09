@@ -35,6 +35,9 @@
         ・uuid ライブラリ -------------------- 必須
           (https://github.com/shyouhei/ruby-uuid)
 
+        ・rubyzip ライブラリ ----------------- EPUB3(DAISY4)で必須
+          (http://github.com/aussiegeek/rubyzip)
+
         ・MeCab ------------------------------ ルビ振りするなら必須
         ・MeCab-Ruby バインディング ---------- 　　　　同上
 

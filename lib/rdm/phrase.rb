@@ -4,14 +4,14 @@
 # copyright (c) 2011 Kishida Atsushi
 #
 
-require 'image_size'
-
 class Phrase
    def initialize(phrase, args = nil)
       @phrase = phrase
       @args = args
+      @yomi = ""
+      split_yomi($1) if %r!//{([^{]+)}! =~ @phrase
    end
-   attr_accessor :phrase, :args, :readid, :totalid
+   attr_accessor :phrase, :args, :readid, :totalid, :yomi
 
    def unify_period
       kana = TEXTDaisy::KANA
@@ -29,6 +29,10 @@ class Phrase
    def namedowncase
       "#{self.class}".downcase
    end
+   def split_yomi(str)
+      @yomi = str
+      @phrase = @phrase.sub(%r!//{[^{]+}!, "")
+   end
 end
 
 class Headline < Phrase
@@ -37,11 +41,11 @@ class Headline < Phrase
    end
    attr_accessor :ncxsrc
 
-   def compile_xml(daisy, file, sectcount)
-      daisy.compile_headline(self, file, sectcount)
+   def compile_xml(daisy)
+      daisy.compile_headline(self)
    end
-   def compile_smil(daisy, smilfile, xmlfile)
-      daisy.compile_smil_headline(self, smilfile, xmlfile)
+   def compile_smil(daisy)
+      daisy.compile_smil_headline(self)
    end
    def valid_args?
       return false unless 7 > @args
@@ -72,11 +76,11 @@ class Sent < Phrase
    end
    attr_accessor :ncxsrc
 
-   def compile_xml(daisy, file, sectcount)
-      daisy.compile_text(self, file, sectcount)
+   def compile_xml(daisy)
+      daisy.compile_text(self)
    end
-   def compile_smil(daisy, smilfile, xmlfile)
-      daisy.compile_smil_text(self, smilfile, xmlfile)
+   def compile_smil(daisy)
+      daisy.compile_smil_text(self)
    end
 end
 
@@ -86,11 +90,11 @@ class Caption < Phrase
    end
    attr_accessor :ncxsrc, :ref
 
-   def compile_xml(daisy, file, sectcount)
-      daisy.compile_caption(self, file, sectcount)
+   def compile_xml(daisy)
+      daisy.compile_caption(self)
    end
-   def compile_smil(daisy, smilfile, xmlfile)
-      daisy.compile_smil_text(self, smilfile, xmlfile)
+   def compile_smil(daisy)
+      daisy.compile_smil_text(self)
    end
 end
 
@@ -99,10 +103,10 @@ class Paragraph < Phrase
       super
    end
 
-   def compile_xml(daisy, file, sectcount)
-      daisy.compile_paragraph(file)
+   def compile_xml(daisy)
+      daisy.compile_paragraph()
    end
-   def compile_smil(daisy, smilfile, xmlfile)
+   def compile_smil(daisy)
    end
 end
 
@@ -128,28 +132,28 @@ class PhraseTag < Phrase
 end
 
 class Image < PhraseTag
-   IMGWIDTH = 550
-   IMGHEIGHT = 400
+#   IMGWIDTH = 550
+#   IMGHEIGHT = 400
 
    def initialize(phrase, args = nil)
       super
    end
    attr_accessor :width, :height, :ref
 
-   def valid_image?
-      return 'errmes1' if @phrase.nil?
-      Dir.mkdir("image") unless File.exist?("image")
-      check_imagefile()
+#   def valid_image?
+#      return 'errmes1' if @phrase.nil?
+##      Dir.mkdir("image") unless File.exist?("image")
+#      check_imagefile()
+#   end
+   def compile_xml(daisy)
+      daisy.compile_image(self)
    end
-   def compile_xml(daisy, file, sectcount)
-      daisy.compile_image(self, file)
-   end
-   def compile_smil(daisy, smilfile, xmlfile)
-#      daisy.compile_smil_image(self, smilfile, xmlfile)
+   def compile_smil(daisy)
+#      daisy.compile_smil_image(self)
    end
 
    private
-
+=begin
    def check_imagefile
       return 'errmes2' unless File.exist?(@phrase)
       extname = File.extname(@phrase)
@@ -180,6 +184,7 @@ class Image < PhraseTag
       }
       return i_size[0], i_size[1]
    end
+=end
 end
 
 class Table < PhraseTag
@@ -197,11 +202,11 @@ class Table < PhraseTag
    def get_table
       return @num, @row, @column
    end
-   def compile_xml(daisy, file, sectcount)
-      daisy.compile_table(self, file, sectcount)
+   def compile_xml(daisy)
+      daisy.compile_table(self)
    end
-   def compile_smil(daisy, smilfile, xmlfile)
-      daisy.compile_smil_table(self, smilfile, xmlfile)
+   def compile_smil(daisy)
+      daisy.compile_smil_table(self)
    end
 end
 
@@ -224,11 +229,11 @@ class Page < Phrase
    def cut_kana
       @phrase.sub(/ぺーじ|ページ/, "")
    end
-   def compile_xml(daisy, file, sectcount)
-      daisy.compile_pagenum(self, file, sectcount)
+   def compile_xml(daisy)
+      daisy.compile_pagenum(self)
    end
-   def compile_smil(daisy, smilfile, xmlfile)
-      daisy.compile_smil_customtest(self, smilfile, xmlfile)
+   def compile_smil(daisy)
+      daisy.compile_smil_customtest(self)
    end
 end
 
@@ -269,11 +274,11 @@ class Note < NoteGroup #PhraseTag
          exit 1
       end
    end
-   def compile_xml(daisy, file, sectcount)
-      daisy.compile_note(self, file, sectcount)
+   def compile_xml(daisy)
+      daisy.compile_note(self)
    end
-   def compile_smil(daisy, smilfile, xmlfile)
-      daisy.compile_smil_customtest(self, smilfile, xmlfile)
+   def compile_smil(daisy)
+      daisy.compile_smil_customtest(self)
    end
 end
 
@@ -291,11 +296,11 @@ class Noteref < Phrase
    end
    attr_accessor :child, :ncxsrc
 
-   def compile_xml(daisy, file, sectcount)
-      daisy.compile_noteref(self, file, sectcount)
+   def compile_xml(daisy)
+      daisy.compile_noteref(self)
    end
-   def compile_smil(daisy, smilfile, xmlfile)
-      daisy.compile_smil_customtest(self, smilfile, xmlfile)
+   def compile_smil(daisy)
+      daisy.compile_smil_customtest(self)
    end
 end
 
@@ -313,20 +318,21 @@ class Annotation < NoteGroup #PhraseTag
          exit 1
       end
    end
-   def compile_xml(daisy, file, sectcount)
-      daisy.compile_note(self, file, sectcount)
+   def compile_xml(daisy)
+      daisy.compile_note(self)
    end
-   def compile_smil(daisy, smilfile, xmlfile)
-      daisy.compile_smil_customtest(self, smilfile, xmlfile)
+   def compile_smil(daisy)
+      daisy.compile_smil_customtest(self)
    end
 end
 
 class Annotations < Annotation
    def initialize(phrase, args = nil)
       super
-      @annotations = []
+#      @annotations = []
+      @notes = []
    end
-   attr_accessor :annotations
+   attr_accessor :notes #:annotations
 end
 
 class Annoref < Phrase
@@ -335,11 +341,11 @@ class Annoref < Phrase
    end
    attr_accessor :child, :ncxsrc
 
-   def compile_xml(daisy, file, sectcount)
-      daisy.compile_noteref(self, file, sectcount)
+   def compile_xml(daisy)
+      daisy.compile_noteref(self)
    end
-   def compile_smil(daisy, smilfile, xmlfile)
-      daisy.compile_smil_customtest(self, smilfile, xmlfile)
+   def compile_smil(daisy)
+      daisy.compile_smil_customtest(self)
    end
 end
 
@@ -355,15 +361,17 @@ class Prodnote < NoteGroup #PhraseTag
          @render = 'required'
       when /\Ao/
          @render = 'optional'
+      when nil
+         @render = 'optional'
       else
          return false
       end
    end
-   def compile_xml(daisy, file, sectcount)
-      daisy.compile_prodnote(self, file, sectcount)
+   def compile_xml(daisy)
+      daisy.compile_prodnote(self)
    end
-   def compile_smil(daisy, smilfile, xmlfile)
-      daisy.compile_smil_customtest(self, smilfile, xmlfile)
+   def compile_smil(daisy)
+      daisy.compile_smil_customtest(self)
    end
 end
 
@@ -383,11 +391,11 @@ class Sidebar < NoteGroup #PhraseTag
          return false
       end
    end
-   def compile_xml(daisy, file, sectcount)
-      daisy.compile_sidebar(self, file, sectcount)
+   def compile_xml(daisy)
+      daisy.compile_sidebar(self)
    end
-   def compile_smil(daisy, smilfile, xmlfile)
-      daisy.compile_smil_customtest(self, smilfile, xmlfile)
+   def compile_smil(daisy)
+      daisy.compile_smil_customtest(self)
    end
 end
 
@@ -397,23 +405,31 @@ class Linenum < PhraseTag
    end
    attr_accessor :ncxsrc
 
-   def compile_xml(daisy, file, sectcount)
+   def compile_xml(daisy)
    end
-   def compile_smil(daisy, smilfile, xmlfile)
+   def compile_smil(daisy)
    end
 end
 
 class Quote < PhraseTag
-   def initialize(phrase, args = nil)
-      super
+   def initialize
+      @lines = []
    end
+   def add_lines(phrase)
+      p = Sent.new(phrase)
+      @lines << p
+   end
+   attr_accessor :lines #, :totalid, :readid
+#   def initialize(phrase, args = nil)
+#      super
+#   end
    attr_accessor :ncxsrc
 
-   def compile_xml(daisy, file, sectcount)
-      daisy.compile_quote(self, file, sectcount)
+   def compile_xml(daisy)
+      daisy.compile_quote(self)
    end
-   def compile_smil(daisy, smilfile, xmlfile)
-      daisy.compile_smil_text(self, smilfile, xmlfile)
+   def compile_smil(daisy)
+      daisy.compile_smil_text(self)
    end
 end
 
@@ -433,9 +449,9 @@ class ImageGroup < Phrase
    def start?
       @start
    end
-   def compile_xml(daisy, file, sectcount)
-      daisy.compile_imagegroup(self, file)
+   def compile_xml(daisy)
+      daisy.compile_imagegroup(self)
    end
-   def compile_smil(daisy, smilfile, xmlfile)
+   def compile_smil(daisy)
    end
 end
