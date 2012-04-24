@@ -64,10 +64,33 @@ class Meta
       @illustlator = values["ill"].nil? ? nil :values["ill"]
       @photographer = values["pht"].nil? ? nil :values["pht"]
       @language = values["language"].nil? ? "ja" : values["language"]
+      @pageDirection = values["pagedirection"].nil? ? "ltr" : values["pagedirection"]
       @iUid = UUID.create
+      check()
    end
    attr_reader :title, :publisher, :date, :language, :iUid, :isbn, :author, :translator, :editor, :illustlator, :photographer
-   attr_accessor :format
+   attr_accessor :format, :pageDirection
+
+   def check
+      page_direction?()
+   end
+
+   def page_direction?
+      if "ja" == @language
+         unless /rtl|ltr/ =~ @pageDirection
+            page_direction_set()
+         end
+      elsif /en/ =~ @language
+         unless "ltr" == @pageDirection
+            page_direction_set()
+         end
+      end
+   end
+   def page_direction_set
+      @pageDirection = "ltr"
+      puts "ページ送り方向を「左から右（ltr）」に設定します。"
+   end
+
 end
 
 class Xmeta

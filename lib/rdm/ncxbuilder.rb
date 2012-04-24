@@ -231,15 +231,7 @@ end
 class TEXTDaisy4
 
    def build_nav_header
-#      @nf.puts <<EOT
-#<?xml version="1.0" encoding="UTF-8"?>
-#<!DOCTYPE html>
-#<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2011/epub" lang="#{@meta.language}" xml:lang="#{@meta.language}">
-#<head> 
-#  <title>#{@meta.title}</title>
-#</head> 
-#
-#<body>
+      stylesheetStr = alternate_stylesheet("nav")
       @nf.puts <<EOT
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
@@ -247,13 +239,11 @@ class TEXTDaisy4
       xmlns:epub="http://www.idpf.org/2007/ops" lang="#{@meta.language}" xml:lang="#{@meta.language}">
    <head>
       <title>目次</title>
-      <link rel="alternate stylesheet" href="Styles/#{@bookname}_horizontal.css" type="text/css" class="horizontal" title="horizontal layout"/>
-      <link rel="stylesheet" href="Styles/#{@bookname}_vertical.css" type="text/css" class="vertical" title="vertical layout"/>
+#{stylesheetStr}
    </head>
 
    <body>
 EOT
-#      <link href="Styles/#{@bookname}.css" rel="stylesheet" type="text/css" />
    end
 
    def build_nav_footer
@@ -265,19 +255,19 @@ EOT
 
    def build_nav_pre
       @nf.puts <<EOT
-  <nav epub:type="toc" id="toc">
+      <nav epub:type="toc" id="toc">
 EOT
    end
 
    def build_nav_pagelist_pre
       @nf.puts <<EOT
-  <nav epub:type="page-list" style="display:none" id="page-list">
+      <nav epub:type="page-list" style="display:none" id="page-list">
 EOT
    end
 
    def build_nav_post
       @nf.puts <<EOT
-  </nav>
+      </nav>
 EOT
    end
 
@@ -291,7 +281,7 @@ EOT
 
    def build_nav_headline(phr, num)
       build_nav_list_pre(num)
-      build_nav_item(phr, num + 2)
+      build_nav_item(phr, num + 3)
    end
 
    def build_nav_list_pre(num)

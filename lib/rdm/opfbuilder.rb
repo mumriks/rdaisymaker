@@ -125,6 +125,7 @@ class TEXTDaisy4
          unique-identifier="pub-id" version="3.0">
 EOT
    end
+# dir="#{@meta.pageDirection}"
 
    def build_opf_meta
       t = Time.now
@@ -167,16 +168,17 @@ EOT
 
    def build_nav_manifest
       @of.puts <<EOT
-      <item media-type="application/xhtml+xml" id="navi" href="toc.xhtml" properties="nav" />
-      <item media-type="text/css" id="horizontal" href="Styles/#{@bookname}_horizontal.css"/>
-      <item media-type="text/css" id="vertical" href="Styles/#{@bookname}_vertical.css"/>
+      <item media-type="application/xhtml+xml" id="nav" href="toc.xhtml" properties="nav" />
+      <item media-type="text/css" id="horizontal" href="Styles/horizontal.css"/>
+      <item media-type="text/css" id="vertical" href="Styles/vertical.css"/>
 EOT
    end
-#      <item media-type="text/css" id="css" href="Styles/#{@bookname}.css"/>
 
    def build_cover_page_manifest
       @of.puts <<EOT
       <item media-type="application/xhtml+xml" id="cover_page" href="Content/cover.xhtml" />
+      <item media-type="text/css" id="cover_horizontal" href="Styles/cover_horizontal.css"/>
+      <item media-type="text/css" id="cover_vertical" href="Styles/cover_vertical.css"/>
 EOT
    end
 
@@ -189,6 +191,12 @@ EOT
    def build_manifest_item(type, num, path)
       @of.puts <<EOT
       <item media-type="#{type}" id="#{num}" href="#{path}"/>
+EOT
+   end
+
+   def build_opf_spine_pre
+      @of.puts <<EOT
+   <spine page-progression-direction="#{@meta.pageDirection}">
 EOT
    end
 

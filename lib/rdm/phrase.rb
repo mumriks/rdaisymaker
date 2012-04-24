@@ -39,7 +39,7 @@ class Headline < Phrase
    def initialize(phrase, args = nil)
       super
    end
-   attr_accessor :ncxsrc
+   attr_accessor :ncxsrc, :indent
 
    def compile_xml(daisy)
       daisy.compile_headline(self)
@@ -132,59 +132,17 @@ class PhraseTag < Phrase
 end
 
 class Image < PhraseTag
-#   IMGWIDTH = 550
-#   IMGHEIGHT = 400
-
    def initialize(phrase, args = nil)
       super
    end
    attr_accessor :width, :height, :ref
 
-#   def valid_image?
-#      return 'errmes1' if @phrase.nil?
-##      Dir.mkdir("image") unless File.exist?("image")
-#      check_imagefile()
-#   end
    def compile_xml(daisy)
       daisy.compile_image(self)
    end
    def compile_smil(daisy)
 #      daisy.compile_smil_image(self)
    end
-
-   private
-=begin
-   def check_imagefile
-      return 'errmes2' unless File.exist?(@phrase)
-      extname = File.extname(@phrase)
-      basename = File.basename(@phrase, ".*")
-      return 'errmes3' unless /\.jpe*g|\.png/ =~ extname
-      extname = '.jpg' if '.jpeg' == extname
-      if /[^A-Za-z0-9]+/ =~ basename
-         bn = basename.gsub(/[^A-Za-z0-9]+/, '')
-         bn = bn + 'aa' if File.exist?("#{bn}#{extname}")
-         while File.exist?("#{bn}#{extname}")
-            bn = bn.succ
-         end
-         basename = bn
-         puts "'#{@phrase}' のファイル名を '#{basename}#{extname}' に変更しました。"
-      end
-      FileUtils.cp(@phrase, "image/#{basename}#{extname}")
-      @phrase = "#{basename}#{extname}"
-      check_imagesize()
-   end
-   def check_imagesize
-      @width, @height = get_image_size()
-      return 'errmes4' unless IMGWIDTH >= @width or IMGHEIGHT >= @height
-   end
-   def get_image_size
-      i_size = []
-      File.open("image/#{@phrase}", "rb"){|img|
-         i_size = ImageSize.new(img.read).get_size
-      }
-      return i_size[0], i_size[1]
-   end
-=end
 end
 
 class Table < PhraseTag
@@ -260,16 +218,19 @@ end
 class NoteGroup < PhraseTag
 end
 
-class Note < NoteGroup #PhraseTag
+class Note < NoteGroup
    def initialize(phrase, args = nil)
       super
       valid_caption?
    end
-   attr_accessor :child, :ncxsrc
+   attr_accessor :child, :ncxsrc, :sectnum, :noteref
+
+   def cut_brace
+      @noteref.gsub!(/[()]/, "")
+   end
 
    def valid_caption?
       unless @caption.nil?
-#         STDERR.puts "Caption is not required. //footnote[#{@args}]"
          STDERR.puts "キャプションには対応していません //footnote[#{@args}]"
          exit 1
       end
@@ -294,7 +255,7 @@ class Noteref < Phrase
    def initialize(phrase, args = nil)
       super
    end
-   attr_accessor :child, :ncxsrc
+   attr_accessor :child, :ncxsrc, :sectnum, :noteref
 
    def compile_xml(daisy)
       daisy.compile_noteref(self)
@@ -304,16 +265,15 @@ class Noteref < Phrase
    end
 end
 
-class Annotation < NoteGroup #PhraseTag
+class Annotation < NoteGroup
    def initialize(phrase, args = nil)
       super
       valid_caption?
    end
-   attr_accessor :child, :ncxsrc
+   attr_accessor :child, :ncxsrc, :sectnum, :annoref
 
    def valid_caption?
       unless @caption.nil?
-#         STDERR.puts "Caption is not required. //annotation[#{@args}]"
          STDERR.puts "キャプションには対応していません //annotation[#{@args}]"
          exit 1
       end
@@ -339,7 +299,7 @@ class Annoref < Phrase
    def initialize(phrase, args = nil)
       super
    end
-   attr_accessor :child, :ncxsrc
+   attr_accessor :child, :ncxsrc, :sectnum, :annoref
 
    def compile_xml(daisy)
       daisy.compile_noteref(self)
@@ -349,7 +309,7 @@ class Annoref < Phrase
    end
 end
 
-class Prodnote < NoteGroup #PhraseTag
+class Prodnote < NoteGroup
    def initialize(phrase, args = nil)
       super
    end
@@ -375,7 +335,7 @@ class Prodnote < NoteGroup #PhraseTag
    end
 end
 
-class Sidebar < NoteGroup #PhraseTag
+class Sidebar < NoteGroup
    def initialize(phrase, args = nil)
       super
    end
@@ -453,5 +413,30 @@ class ImageGroup < Phrase
       daisy.compile_imagegroup(self)
    end
    def compile_smil(daisy)
+   end
+end
+
+class Indent < Phrase
+   def initialize(args)
+      @args = args
+      valid_args?()
+   end
+   def compile_xml(daisy)
+      daisy.compile_indent(@args)
+   end
+   def compile_smil(daisy)
+   end
+
+   private
+
+   def valid_args?
+      unless "end" == @args
+         unless /x[1-9]?|[1-9]/ =~ @args
+            mes = "インデント指定できるのは、1 から 9 の数字ひともじ、
+もしくは、頭に x をつけて 1 から 9 までの数字ひともじです。"
+            STDERR.puts mes
+            exit 1
+         end
+      end
    end
 end

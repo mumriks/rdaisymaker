@@ -4,6 +4,8 @@
 
 class TEXTDaisy4 < Daisy4
 
+   JAR = File.join(BINDIR, "../lib/rdm/epubcheck/epubcheck-3.0b4.jar")
+
    def initialize(values)
       super
       @xmeta.multimediaType = "textstream"
@@ -39,22 +41,27 @@ class TEXTDaisy4 < Daisy4
       @s_path = "#{@temp}/#{@bookname}/Publication/Styles"
       @c_path = "#{@temp}/#{@bookname}/Publication/Content"
       @p_path = "#{@temp}/#{@bookname}/Publication"
-      [@m_path, @i_path, @s_path, @c_path].each {|path|
+      [@m_path, @s_path, @c_path].each {|path|
          FileUtils.mkdir_p(path)
       }
    end
    def copy_files
       ["horizontal", "vertical"].each {|type|
-         distpath = "#{@s_path}/#{@bookname}_#{type}.css"
-         srcpath = File.join(BINDIR, "../doc/common_#{type}.css")
+         distpath = "#{@s_path}/#{type}.css"
+         srcpath = File.join(BINDIR, "../doc/#{type}.css")
          FileUtils.cp(srcpath, distpath)
       }
-#      distpath = "#{@s_path}/#{@bookname}.css"
-#      FileUtils.cp(File.join(BINDIR, "../doc/common.css"), distpath)
+      if File.exist?("#{@c_path}/cover.xhtml")
+         ["horizontal", "vertical"].each {|type|
+            distpath = "#{@s_path}/cover_#{type}.css"
+            FileUtils.cp(File.join(BINDIR, "../doc/cover_#{type}.css"), distpath)
+         }
+      end
       build_other_file()
       build_epub3()
    end
    def copy_image(image, dstname)
+      FileUtils.mkdir_p(@i_path) unless File.exist?(@i_path)
       FileUtils.cp(image, "#{@i_path}/#{dstname}")
    end
    def check_imagefile(image)
@@ -123,56 +130,52 @@ class TEXTDaisy4 < Daisy4
          build_nav_header()
          build_nav_pre()
          level = 0
-         indent = 4
+         indent = 6
          @headlines.each_with_index {|h, i|
             h.adjust_ncx
             if 0 == i
-               build_nav_section_root_pre(indent)
-               build_nav_headline(h, indent + 2)
+               build_nav_section_root_pre(indent + 3)
+               build_nav_headline(h, indent + 6)
                level = h.args
-               indent += 2
+               indent += 6
             elsif level < h.args
-               build_nav_section_root_pre(indent + 2)
-               build_nav_headline(h, indent + 4)
+               build_nav_section_root_pre(indent + 3)
+               build_nav_headline(h, indent + 6)
                level = h.args
-               indent += 4
+               indent += 6
             elsif level == h.args
                build_nav_list_post(indent)
                build_nav_headline(h, indent)
             elsif level > h.args
                build_nav_list_post(indent)
-               build_nav_section_root_post(indent - 2)
-               build_nav_list_post(indent - 4)
-               build_nav_headline(h, indent - 4)
-               build_nav_list_post(indent - 4)
-               build_nav_section_root_post(indent - 6)
+               build_nav_section_root_post(indent - 3)
+               build_nav_list_post(indent - 6)
+               build_nav_headline(h, indent - 6)
                level = h.args
                indent -= 6
-            elsif @headlines[i + 1] == nil
-               if h.args >= @headlines[i + 1].args
-                  s = h.args
-                  e = @headlines[i + 1].args
-                  s.downto(e) {|l|
-                     build_nav_list_post(indent)
-                     build_nav_section_root_post(l - 2)
-                     indent -= 2
-                  }
-               end
+            end
+            if @headlines[i + 1].nil?
+               (level).times {|l|
+                  build_nav_list_post(indent)
+                  build_nav_section_root_post(indent - 3)
+                  indent -= 6
+               }
             end
          }
          build_nav_post()
-         if @pages
+         indent = 6
+         unless 0 == @pages.size
             build_nav_pagelist_pre()
-            build_nav_section_root_pre(indent)
-            indent += 2
+            build_nav_section_root_pre(indent + 3)
+            indent += 6
             @pages.each {|n|
                if /normal|front|special/ =~ n.namedowncase
                   build_nav_list_pre(indent)
-                  build_nav_item_page(n, indent + 2)
+                  build_nav_item_page(n, indent + 3)
                   build_nav_list_post(indent)
                end
             }
-            build_nav_section_root_post(indent - 2)
+            build_nav_section_root_post(indent - 3)
             build_nav_post()
          end
 =begin
@@ -241,11 +244,13 @@ class TEXTDaisy4 < Daisy4
          build_opf_manifest_post()
 
          build_opf_spine_pre()
+#         build_opf_spine("cover_page", "itemref_1")
+#         build_opf_spine("navi", "itemref_2")
          chapnum.times {|c|
             build_opf_spine("item_#{spinenum}", "itemref_#{c + 1}")
+#            build_opf_spine("item_#{spinenum}", "itemref_#{c + 3}")
             spinenum = spinenum + 1
          }
-         build_opf_spine("navi", "itemref_#{chapnum + 1}")
          build_opf_spine_post()
 
          build_opf_package_post()
@@ -298,6 +303,7 @@ EOT
       }
       Dir.chdir(basedir)
       FileUtils.mv("#{@temp}/#{@bookname}/#{@bookname}.epub", "#{@bookname}.epub")
+      epub3check()
 # ^^ ziprubytype
 
 #      Zip::Archive.open("#{@bookname}.epub") {|ar|
@@ -306,6 +312,13 @@ EOT
 #         ar.add_dir("#{@p_path}")
 #      }
    end
-
+   def epub3check
+      if File.exist?(JAR)
+         puts "EPUB3 をチェックします・・・"
+         exec "java -jar #{JAR} #{@bookname}.epub"
+      else
+         puts "EPUB3 CHECK プログラムがみつかりません。"
+      end
+   end
 
 end

@@ -42,6 +42,9 @@ EOT
 EOT
    end
 
+   def compile_indent(args)
+   end
+
    def compile_headline(phr)
       befour_level = @level
       @level = phr.args
@@ -75,6 +78,7 @@ EOT
       check_paragraph()
       smilstr, idstr = compile_id(phr)
       phr.ncxsrc = smilstr
+=begin
       if /\A</ =~ phr.phrase
          @xfile.puts(indent(%Q[<#{phr.namedowncase} id="#{idstr}" smilref="#{smilstr}" idref="##{idstr.succ}">], @xindent))
          @xfile.puts(indent(%Q[#{phr.phrase}], @xindent + 2))
@@ -82,6 +86,18 @@ EOT
       else
          @xfile.puts(indent(%Q[<#{phr.namedowncase} id="#{idstr}" smilref="#{smilstr}" idref="##{idstr.succ}">#{phr.phrase}</#{phr.namedowncase}>], @xindent))
       end
+=end
+      phr.phrase.gsub!(/fnr/, phr.namedowncase)
+      phr.phrase.sub!(/id=""/, %Q[id="#{idstr}-ref"])
+      phr.phrase.sub!(/idref="#"/, %Q[idref="##{idstr.succ}"])
+      if /\A</ =~ phr.phrase
+         @xfile.puts(indent(%Q[<sent id="#{idstr}" smilref="#{smilstr}">], @xindent))
+         @xfile.puts(indent(%Q[#{preStr}#{phr.phrase}#{postStr}], @xindent + 2))
+         @xfile.puts(indent(%Q[</sent>], @xindent))
+      else
+         @xfile.puts(indent(%Q[<sent id="#{idstr}" smilref="#{smilstr}">#{phr.phrase}</sent>], @xindent))
+      end
+#
       @normal_print = true
    end
 
@@ -89,14 +105,26 @@ EOT
       smilstr, idstr = compile_id(phr)
       phr.ncxsrc = smilstr
       @xfile.puts(indent(%Q[<#{phr.namedowncase} id="#{idstr}" smilref="#{smilstr}">], @xindent))
-      if /\A</ =~ phr.phrase
+      phrase = check_refstr(phr)
+      if /\A</ =~ phrase #phr.phrase
          @xfile.puts(indent("<p>", @xindent + 2))
-         @xfile.puts(indent(%Q[#{phr.phrase}], @xindent + 4))
+         @xfile.puts(indent("#{phrase}", @xindent + 4))
          @xfile.puts(indent("</p>", @xindent + 2))
       else
-         @xfile.puts(indent(%Q[<p>#{phr.phrase}</p>], @xindent + 2))
+#         @xfile.puts(indent(%Q[<p>#{phr.phrase}</p>], @xindent + 2))
+         @xfile.puts(indent(%Q[<p>#{phrase}</p>], @xindent + 2))
       end
       @xfile.puts(indent(%Q[</#{phr.namedowncase}>], @xindent))
+   end
+
+   def check_refstr(phr)
+      unless phr.noteref.nil?
+         phr.cut_brace
+         phrase = "#{phr.noteref}:#{phr.phrase} 注、終わり。"
+      else
+         phrase = phr.phrase
+      end
+      return phrase
    end
 
    def compile_prodnote(phr)
@@ -342,6 +370,22 @@ EOT
       idstr = "t#{id}"
       smilstr = "#{PTK}#{smilnum}.smil#phr#{phrnum}"
       return smilstr, idstr
+   end
+
+   def tag_ruby(kanji, ruby, type)
+      k = kanji.gsub(/[\s　]/, '')
+      r = ruby.gsub(/[\s　]/, '')
+      rubytag = "@<ruby>{#{k},#{r}}" if 'review' == type
+      rubytag = "#{k}《#{r}》" if 'daisy' == type
+      unless /#{KANA}+/ =~ r
+         errmes = "ルビタグの読み部分が違っているようです : #{rubytag}"
+         print_error(errmes)
+      end
+      unless /#{KANJI}+/ =~ k
+         errmes = "ルビタグの漢字部分が違っているようです : #{rubytag}"
+         print_error(errmes)
+      end
+      tag = %Q!<span class="ruby">#{k}<span class="rp">（</span><span class="rt">#{r}</span><span class="rp">）</span></span>!
    end
 
 end

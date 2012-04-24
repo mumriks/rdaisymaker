@@ -10,7 +10,8 @@ class Daisy
    ZENKIGOU = Regexp.new("[！”＃＄％＆’（）＝～｜￥「」＜＞｛｝【】『』〔〕≪≫・；：＋＊－／＠‘　、。]")
    ZENEISU = Regexp.new("[０-９ａ-ｚＡ-Ｚ]")
    KANA = Regexp.new("[ぁ-ゖァ-ヺー]")
-   KANJI = Regexp.new("[^#{KANA}#{ZENEISU}#{ZENKIGOU}!-~]")
+#   KANJI = Regexp.new("[^#{KANA}#{ZENEISU}#{ZENKIGOU}!-~]")
+   KANJI = Regexp.new("[^#{KANA}#{ZENEISU}#{ZENKIGOU}!-~\s]")
 
    def zerosuplement(fig, place)
       sprintf("%0#{place}d", fig)
@@ -55,6 +56,10 @@ class Daisy
          when '<s>'
             tag = tag_sesamedot(args) if self.kind_of?(Daisy4)
             tag = check_instead(str, args) if self.kind_of?(Daisy3)
+         when '<sup>'
+            tag = tag_sup(args)
+         when '<sub>'
+            tag = tag_sub(args)
          else
             print_error("未定義のインラインタグです : \n#{str}")
          end
@@ -69,45 +74,31 @@ class Daisy
    def tag_italic(args)
       "<em>#{args}</em>"
    end
-
    def tag_bold(args)
       "<strong>#{args}</strong>"
    end
-
    def tag_underline(args)
       %Q[<span class="underline">#{args}</span>]
    end
-
    def tag_sesamedot(args)
-      %Q[<span class="sesamedot">#{args}</span>]
-#      print_error("まだ傍点は未設定：daisy4")
+      %Q[<span class="sesame_dot">#{args}</span>]
    end
-
+   def tag_sup(args)
+      "<sup>#{args}</sup>"
+   end
+   def tag_sub(args)
+      "<sub>#{args}</sub>"
+   end
    def check_instead(str, args)
       if self.sesame.nil?
          print_error("傍点の処理が設定されていません : \n#{str}")
       else
+         puts "傍点を #{self.sesame} で代用します。\n#{str}\n\n"
          eval("tag_#{self.sesame}(args)")
       end
    end
 
    private
-
-   def tag_ruby(kanji, ruby, type)
-      k = kanji.gsub(/[\s　]/, '')
-      r = ruby.gsub(/[\s　]/, '')
-      rubytag = "@<ruby>{#{k},#{r}}" if 'review' == type
-      rubytag = "#{k}《#{r}》" if 'daisy' == type
-      unless /#{KANA}+/ =~ r
-         errmes = "ルビタグの読み部分が違っているようです : #{rubytag}"
-         print_error(errmes)
-      end
-      unless /#{KANJI}+/ =~ k
-         errmes = "ルビタグの漢字部分が違っているようです : #{rubytag}"
-         print_error(errmes)
-      end
-      tag = %Q!<span class="ruby">#{k}<span class="rp">（</span><span class="rt">#{r}</span><span class="rp">）</span></span>!
-   end
 
    def indent(str, n)
       str.gsub(/^/, " " * n)

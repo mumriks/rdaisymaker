@@ -6,7 +6,26 @@ require 'rdm/compiler'
 
 class TEXTDaisy4
 
+   def alternate_stylesheet(name = nil)
+      refstr = "Styles/" if "nav" == name
+      refstr = "../Styles/cover_" if "cover" == name
+      refstr = "../Styles/" if name.nil?
+      if "rtl" == @meta.pageDirection
+         str = %Q[      <link rel="alternate stylesheet" href="#{refstr}horizontal.css"
+            type="text/css" class="horizontal" title="horizontal layout"/>
+      <link rel="stylesheet" href="#{refstr}vertical.css"
+            type="text/css" class="vertical" title="vertical layout"/>]
+      elsif "ltr" == @meta.pageDirection
+         str = %Q[      <link rel="stylesheet" href="#{refstr}horizontal.css"
+            type="text/css" class="horizontal" title="horizontal layout"/>
+      <link rel="alternate stylesheet" href="#{refstr}vertical.css"
+            type="text/css" class="vertical" title="vertical layout"/>]
+      end
+      return str
+   end
+
    def cover_page(image)
+      stylesheetStr = alternate_stylesheet("cover")
       @xfile.puts <<EOT
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
@@ -15,8 +34,7 @@ class TEXTDaisy4
       lang="#{@meta.language}" xml:lang="#{@meta.language}">
     <head>
       <title>#{@meta.title}</title>
-      <link rel="alternate stylesheet" href="../Styles/#{@bookname}_horizontal.css" type="text/css" class="horizontal" title="horizontal layout"/>
-      <link rel="stylesheet" href="../Styles/#{@bookname}_vertical.css" type="text/css" class="vertical" title="vertical layout"/>
+#{stylesheetStr}
     </head>
     <body class="cover" epub:type="cover">
        <div>
@@ -25,11 +43,11 @@ class TEXTDaisy4
     </body>
 </html>
 EOT
-#      <link href="../Styles/#{@bookname}.css" rel="stylesheet" type="text/css" />
    end
 
    def xml_header
       @table_id = 0
+      stylesheetStr = alternate_stylesheet()
       @xfile.puts <<EOT
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
@@ -39,28 +57,10 @@ EOT
       lang="#{@meta.language}" xml:lang="#{@meta.language}">
     <head>
       <title>#{@meta.title}</title>
-      <link rel="alternate stylesheet" href="../Styles/#{@bookname}_horizontal.css" type="text/css" class="horizontal" title="horizontal layout"/>
-      <link rel="stylesheet" href="../Styles/#{@bookname}_vertical.css" type="text/css" class="vertical" title="vertical layout"/>
+#{stylesheetStr}
     </head>
     <body>
 EOT
-#      <link href="../Styles/#{@bookname}.css" rel="stylesheet" type="text/css" />
-=begin
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="#{@meta.language}" xml:lang="#{@meta.language}">
-  <speak version="1.1"
-         xmlns="http://www.w3.org/2001/10/synthesis"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://www.w3.org/2001/10/synthesis
-                   http://www.w3.org/TR/speech-synthesis11/synthesis.xsd"
-         xml:lang="#{@meta.language}">
-    <head>
-      <title>#{@meta.title}</title>
-      <link href="../Styles/#{@bookname}.css" rel="stylesheet" type="text/css" />
-    </head>
-    <body>
-=end
       @xindent = 4
    end
 
@@ -80,14 +80,35 @@ EOT
 EOT
    end
 
+   def compile_indent(args)
+      if /[1-9x]/ =~ args
+         @xfile.puts(indent(%Q[<div class="indent_#{args}">], @xindent))
+         @xindent += 2
+      elsif "end" == args
+         if @normal_print
+            @xfile.puts(indent("</p>", @xindent - 2))
+            @xfile.puts(indent("</div>", @xindent - 4))
+            @xindent -= 4
+            @normal_print = false
+         else
+            @xfile.puts(indent("</div>", @xindent))
+         end
+      end
+   end
+
    def print_phrase(phr, idstr)
       @xfile.puts(indent(%Q[<span id="#{idstr}">], @xindent))
-      if /\A</ =~ phr.phrase
-         @xfile.puts(indent("<span>", @xindent + 2))
-         @xfile.puts(indent("#{phr.phrase}", @xindent + 4))
+      phrase = phr.phrase.sub(/^[\s　]+/, "")
+      spanpre = %Q[<span speak:ph="#{phr.yomi}">] unless "" == phr.yomi
+      spanpre = "<span>" if "" == phr.yomi
+      if /\A</ =~ phrase
+#         @xfile.puts(indent("<span>", @xindent + 2))
+         @xfile.puts(indent(spanpre, @xindent + 2))
+         @xfile.puts(indent("#{phrase}", @xindent + 4))
          @xfile.puts(indent("</span>", @xindent + 2))
       else
-         @xfile.puts(indent("<span>#{phr.phrase}</span>", @xindent + 2))
+#         @xfile.puts(indent(%Q[<span>#{phrase}</span>], @xindent + 2))
+         @xfile.puts(indent(%Q[#{spanpre}#{phrase}</span>], @xindent + 2))
       end
       @xfile.puts(indent("</span>", @xindent))
    end
@@ -106,44 +127,74 @@ EOT
          }
       end
       @xfile.puts(indent(%Q[<section id="s#{idstr}">], @xindent))
-      @xfile.puts(indent("<h#{phr.args}>", @xindent + 2))
-      @xindent = @xindent + 4
+      if phr.indent
+         @xfile.puts(indent(%Q[<div class="indent_#{phr.indent}">], @xindent + 2))
+      end
+      @xfile.puts(indent("<h#{phr.args}>", @xindent + 4))
+      @xindent = @xindent + 6
       print_phrase(phr, idstr)
-      @xindent = @xindent - 2
-      @xfile.puts(indent("</h#{phr.args}>", @xindent))
+      @xindent = @xindent - 4
+      @xfile.puts(indent("</h#{phr.args}>", @xindent + 2))
+      if phr.indent
+         @xfile.puts(indent("</div>", @xindent))
+      end
    end
 
    def compile_noteref(phr)
-# <a rel="note" epub:type="#{phr.namedowncase}" id="#{idstr}" href="##{idstr.succ}">#{phr.phrase}</a>
       check_paragraph()
       chapnum, idstr = compile_id(phr)
       phr.ncxsrc = "#{PTK}#{chapnum}.xhtml##{idstr}"
+=begin
       @xfile.puts(indent(%Q[<a rel="note" epub:type="#{phr.namedowncase}" id="#{idstr}" href="##{idstr.succ}">], @xindent))
       if /\A</ =~ phr.phrase
          @xfile.puts(indent("<span>", @xindent + 2))
-         @xfile.puts(indent("#{phr.phrase}", @xindent + 4))
+         phrase = phr.phrase.sub(/^[\s　]+/, "")
+         @xfile.puts(indent("#{phrase}", @xindent + 4))
          @xfile.puts(indent("</span>", @xindent + 2))
       else
          @xfile.puts(indent("<span>#{phr.phrase}</span>", @xindent + 2))
       end
       @xfile.puts(indent("</a>", @xindent))
+=end
+      phr.phrase.gsub!(/epub:type=""/, %Q[epub:type="#{phr.namedowncase}"])
+      phr.phrase.sub!(/id=""/, %Q[id="#{idstr}-ref"])
+      phr.phrase.sub!(/href="#"/, %Q[href="##{idstr.succ}"])
+      phrase = phr.phrase.sub(/^[\s　]+/, "")
+      if /\A</ =~ phrase
+         @xfile.puts(indent(%Q[<span id="#{idstr}">], @xindent))
+         @xfile.puts(indent(phrase, @xindent + 2))
+         @xfile.puts(indent("</span>", @xindent))
+      else
+         @xfile.puts(indent(%Q[<span id="#{idstr}">#{phrase}</span>], @xindent))      end
+
       @normal_print = true
    end
 
    def compile_note(phr)
       chapnum, idstr = compile_id(phr)
       phr.ncxsrc = "#{PTK}#{chapnum}.xhtml##{idstr}"
-      @xfile.puts(indent(%Q[<aside id="fn#{idstr}">], @xindent))
+      @xfile.puts(indent(%Q[<aside id="fn#{idstr}" epub:type="#{phr.namedowncase}">], @xindent))
       @xfile.puts(indent("<p>", @xindent + 2))
-      if /\A</ =~ phr.phrase
+      phrase = check_refstr(phr)
+      if /\A</ =~ phrase #phr.phrase
          @xfile.puts(indent(%Q[<span id="#{idstr}">], @xindent + 4))
-         @xfile.puts(indent("#{phr.phrase}", @xindent + 6))
+         @xfile.puts(indent("#{phrase}", @xindent + 6))
          @xfile.puts(indent("</span>", @xindent + 4))
       else
-         @xfile.puts(indent(%Q[<span id="#{idstr}">#{phr.phrase}</span>], @xindent + 4))
+#         @xfile.puts(indent(%Q[<span id="#{idstr}">#{phr.phrase}</span>], @xindent + 4))
+         @xfile.puts(indent(%Q[<span id="#{idstr}">#{phrase}</span>], @xindent + 4))
       end
       @xfile.puts(indent("</p>", @xindent + 2))
       @xfile.puts(indent("</aside>", @xindent))
+   end
+
+   def check_refstr(phr)
+      phrase = phr.phrase.sub(/^[\s　]+/, "")
+      unless phr.noteref.nil?
+         phr.cut_brace
+         phrase = "#{phr.noteref}:#{phrase} 注、終わり。"
+      end
+      return phrase
    end
 
    def compile_prodnote(phr)
@@ -162,7 +213,8 @@ EOT
       @xfile.puts(indent(%Q[<header>#{phr.caption}</header>], @xindent + 2)) unless phr.caption.nil?
       phr.phrase.each_line {|p|
          @xfile.puts(indent("<p>", @xindent + 2))
-         @xfile.puts(indent(%Q[<span id="#{idstr}">#{p}</span>], @xindent + 4))
+         phrase = p.sub(/^[\s　]+/, "")
+         @xfile.puts(indent(%Q[<span id="#{idstr}">#{phrase}</span>], @xindent + 4))
          @xfile.puts(indent("</p>", @xindent + 2))
       }
       @xfile.puts(indent("</aside>", @xindent))
@@ -182,7 +234,8 @@ EOT
       @xfile.puts(indent(%Q[<blockquote id="#{idstr}">], @xindent))
       phr.lines.each {|sent|
          @xfile.puts(indent("<p>", @xindent + 2))
-         @xfile.puts(indent("<span>#{sent.phrase}</span>", @xindent + 4))
+         phrase = sent.phrase.sub(/^[\s　]+/, "")
+         @xfile.puts(indent("<span>#{phrase}</span>", @xindent + 4))
          @xfile.puts(indent("</p>", @xindent + 2))
       }
       @xfile.puts(indent("</blockquote>", @xindent))
@@ -192,7 +245,6 @@ EOT
       chapnum, idstr = compile_id(phr)
       phr.ncxsrc = "#{PTK}#{chapnum}.xhtml##{idstr}"
       str = phr.cut_kana
-#      @xfile.puts(indent(%Q[<span xmlns:epub="http://www.idpf.org/2007/ops" id="#{idstr}" epub:type="pagebreak" title="#{str}"></span>], @xindent))
       @xfile.puts(indent(%Q[<span id="#{idstr}" epub:type="pagebreak" title="#{str}"></span>], @xindent))
    end
 
@@ -317,7 +369,6 @@ EOT
          <text src="#{xmlfilename}#t#{tnum}" id="phr#{phrnum}_text"/>
       </par>
 EOT
-#      <par id="phr#{phrnum}" xmlns:epub="http://www.idpf.org/2007/ops" epub:type="pagebreak">
    end
 
    def compile_smil_notegroup(phr)
@@ -332,7 +383,6 @@ EOT
          <text src="#{xmlfilename}#t#{tnum}" id="phr#{phrnum}_text"/>
       </par>
 EOT
-#      <par id="phr#{phrnum}" xmlns:epub="http://www.idpf.org/2007/ops" epub:type="#{phrType}">
    end
 
    def compile_smil_table(phr)
@@ -383,15 +433,32 @@ EOT
    def compile_prodnote_group(phr)
       chapnum, idstr = compile_id(phr)
       phr.ncxsrc = "#{PTK}#{chapnum}.xhtml##{idstr}"
-      @xfile.puts(indent(%Q[<aside id="an#{idstr}">], @xindent))
+      @xfile.puts(indent(%Q[<aside id="an#{idstr}" class="figanno">], @xindent))
       prodnote_print(phr, idstr)
    end
 
    def prodnote_print(phr, idstr)
       @xfile.puts(indent("<p>", @xindent + 2))
-      @xfile.puts(indent(%Q[<span id="#{idstr}">#{phr.phrase}</span>], @xindent + 4))
+      phrase = phr.phrase.sub(/^[\s　]+/, "")
+      @xfile.puts(indent(%Q[<span id="#{idstr}">#{phrase}</span>], @xindent + 4))
       @xfile.puts(indent("</p>", @xindent + 2))
       @xfile.puts(indent(%Q[</aside>], @xindent))
+   end
+
+   def tag_ruby(kanji, ruby, type)
+      k = kanji.gsub(/[\s　]/, '')
+      r = ruby.gsub(/[\s　]/, '')
+      rubytag = "@<ruby>{#{k},#{r}}" if 'review' == type
+      rubytag = "#{k}《#{r}》" if 'daisy' == type
+      unless /#{KANA}+/ =~ r
+         errmes = "ルビタグの読み部分が違っているようです : #{rubytag}"
+         print_error(errmes)
+      end
+      unless /#{KANJI}+/ =~ k
+         errmes = "ルビタグの漢字部分が違っているようです : #{rubytag}"
+         print_error(errmes)
+      end
+      tag = %Q!<ruby>#{k}<rp>（</rp><rt>#{r}</rt><rp>）</rp></ruby>!
    end
 
 end

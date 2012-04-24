@@ -26,7 +26,7 @@ class TEXTDaisy < Daisy3
    end
    def mk_temp(temp)
       @temp = temp
-      FileUtils.mkdir_p("#{@temp}/#{@bookname}/Images")
+      FileUtils.mkdir_p("#{@temp}/#{@bookname}")
    end
    def copy_files
       FileUtils.cp_r("#{@temp}/#{@bookname}/", "./") unless "." == @temp
@@ -41,6 +41,9 @@ class TEXTDaisy < Daisy3
       }
    end
    def copy_image(image, dstname)
+      unless File.exist?("#{@temp}/#{@bookname}/Images")
+         Dir.mkdir("#{@temp}/#{@bookname}/Images")
+      end
       FileUtils.cp(image, "#{@temp}/#{@bookname}/Images/#{dstname}")
    end
 
@@ -134,24 +137,28 @@ class TEXTDaisy < Daisy3
             end
          }
          build_ncx_navmap_post()
-         build_ncx_pagelist_pre()
-         @pages.each {|n|
-            if /normal|front|special/ =~ n.namedowncase
-               self.build_ncx_pagelist(n)
-            end
-         }
-         self.build_ncx_pagelist_post()
-         @ncxnotetype.each {|t|
-            num = 1
-            build_ncx_navlist_pre(t)
-            @ncxnote.each {|n|
-               if t == n.namedowncase
-                  build_ncx_navlist(n, num)
-                  num += 1
+         unless 0 == @pages.size
+            build_ncx_pagelist_pre()
+            @pages.each {|n|
+               if /normal|front|special/ =~ n.namedowncase
+                  self.build_ncx_pagelist(n)
                end
             }
-            build_ncx_navlist_post()
-         }
+            self.build_ncx_pagelist_post()
+         end
+         unless 0 == @ncxnotetype.size
+            @ncxnotetype.each {|t|
+               num = 1
+               build_ncx_navlist_pre(t)
+               @ncxnote.each {|n|
+                  if t == n.namedowncase
+                     build_ncx_navlist(n, num)
+                     num += 1
+                  end
+               }
+               build_ncx_navlist_post()
+            }
+         end
          build_ncx_post()
       }
    end

@@ -10,13 +10,13 @@ require 'fileutils'
 require 'optparse'
 require 'tempfile'
 
-VERSION = "0.2.0a"
+VERSION = "0.2.1"
 DAISYM = "R DAISY Maker ver #{VERSION}"
 DNAME = "rdm"
 PLEXTALK = "PLEXTALK DAISY Producer ver 0.2.4.0"
 PNAME = "ptk"
 @params = {"ptk" => DNAME, "generator" => DAISYM,
-           "type" => nil, "sesame" => nil}
+           "type" => nil, "sesame" => nil, "pagedirection" => nil}
 
 parser = OptionParser.new
 scriptfile = File.basename($0)
@@ -31,8 +31,13 @@ parser.on('-p', 'Set generator only at PLEXTALK Producer.') {
 parser.on('--textncx', 'build textNCX'){
    @params["type"] = 'textNCX'
 }
-parser.on('--textdaisy4', 'build textDAISY4 epub3'){
+parser.on('--textdaisy4', 'build textDAISY4 epub3(横組)'){
    @params["type"] = 'textDAISY4'
+   @params["pagedirection"] = "ltr"
+}
+parser.on('--textdaisy4-rtl', 'build textDAISY4 epub3(縦組)'){
+   @params["type"] = 'textDAISY4'
+   @params["pagedirection"] = "rtl"
 }
 parser.on('--bb', '傍点を太字で代用（daisy3のみ）'){
    @params["sesame"] = 'bold'
@@ -67,7 +72,6 @@ BINDIR = File.dirname(File.expand_path(__FILE__))
 $LOAD_PATH << File.join(BINDIR, "../lib")
 require 'rdm/daisy'
 require 'rdm/phrase'
-#require 'compiler'
 require 'rdm/ncxbuilder'
 require 'rdm/opfbuilder'
 
@@ -80,6 +84,7 @@ def new_section
    @sect = Section.new
    @chapter.add_section(@sect)
    @sectcount += 1
+   @noterefNum = 0
 end
 
 def check_phrase_type(f)
@@ -89,7 +94,17 @@ def check_phrase_type(f)
       when /\A=+[\s]/
          args = phr.slice(/=+/).size
          phr2 = phr.sub(/=+\s/, '')
+         if /\A@<indent>{([^,]+),([^{]+)}/ =~ phr2
+            indent = $1
+            phr2 = $2
+            unless /\A[1-9]\z/ =~ indent
+               indent = nil
+               mes = "見出しのインデントは 1 から 9 までで指定してください。"
+               print_error(mes)
+            end
+         end
          @p = Headline.new(phr2, args)
+         @p.indent = indent if indent
          unless @p.valid_args?
             mes = "レベルが深すぎます : #{File.basename(f)} line:#{@lineno}\n#{phr}"
             print_error(mes)
@@ -182,6 +197,15 @@ def read_type(phr, f)
    when /\Aunderline\z/
       phr, args = read_phrase(phr, f)
       sent_flat(phr, "underline")
+   when /\Aindent\z/
+      phr, args = read_phrase(phr, f)
+      p = Indent.new(args[0])
+      @sect.add_phrase(p)
+      @indtbegin += 1
+   when /\Aindentend\z/
+      p = Indent.new("end")
+      @sect.add_phrase(p)
+      @indtend += 1
    else
       mes = "未定義のタグです : //#{type}\n#{File.basename(f)} line:#{@lineno}\n#{phr}"
       print_error(mes)
@@ -189,14 +213,16 @@ def read_type(phr, f)
 end
 
 def read_reftype(phrase)
-   mes = "引数の文法が違うようです : #{phrase}\n#{File.basename(@f)} line:#{@lineno}"
+   @refmes = "引数の文法が違うようです : #{phrase}\n#{File.basename(@f)} line:#{@lineno}"
    if /@<fn>{([^{]+?)}/ =~ phrase
       args = $1
-      print_error(mes)  unless /\A[a-z0-9_-]+\z/ =~ $1
-      phr = phrase.sub(/@<fn>{[^{]+}/, '')
-      @daisy.skippable.noteref = "false"
-      p = Noteref.new(phr, args)
-      @skip_list[args] << Skip.new(@f, @lineno, p)
+      daisy3noteref(phrase, args) #if @daisy.kind_of?(Daisy3)
+#      daisy4noteref(phrase, args) if @daisy.kind_of?(Daisy4)
+##      print_error(@refmes)  unless /\A[a-zA-Z0-9_-]+\z/ =~ $1
+##      phr = phrase.sub(/@<fn>{[^{]+}/, '')
+##      @daisy.skippable.noteref = "false"
+##      p = Noteref.new(phr, args)
+##      @skip_list[args] << Skip.new(@f, @lineno, p)
    elsif @daisy.instance_of?(TEXTDaisy)
       mes = "使用できないタグです : #{phrase}\n#{File.basename(@f)} line:#{@lineno}"
       print_error(mes)
@@ -208,10 +234,78 @@ def read_reftype(phrase)
       phr = phrase.sub(/@<an>\[[^\[]+\]{[^{]+}/, exstr)
       p = Annoref.new(phr, args)
       @skip_list[args] << Skip.new(@f, @lineno, p)
+      @sect.add_phrase(p)
    else
-      print_error(mes)
+      print_error(@refmes)
    end
+end
+
+def daisy3noteref(phrase, args)
+   if /,/ =~ args
+      argss = args.split(/,/)
+      args = argss[0]; noteref = argss[1]
+      @ref[0] = true
+   else
+      @noterefNum += 1
+      noteref = "(注#{@noterefNum})"
+      @ref[1] = true
+   end
+   print_error(@refmes)  unless /\A[a-zA-Z0-9_-]+\z/ =~ args
+   if @daisy.kind_of?(Daisy3)
+      reftag = %Q[<fnr id="" idref="#">#{noteref}</fnr>]
+   elsif @daisy.kind_of?(Daisy4)
+      reftag = %Q[<a rel="note" epub:type="" id="" href="#">#{noteref}</a>]
+   end
+#   phr = phrase.sub(/@<fn>{[^{]+}/, %Q[<fnr id="" idref="#">#{noteref}</fnr>])
+   phr = phrase.sub(/@<fn>{[^{]+}/, reftag)
+   @daisy.compile_inline_tag(phr)
+   @daisy.skippable.noteref = "false"
+   p = Noteref.new(phr, args)
+   p.noteref = noteref unless argss
    @sect.add_phrase(p)
+   @skip_list[args] << Skip.new(@f, @lineno, p)
+end
+
+def daisy4noteref(phrase, args)
+   if /,/ =~ args
+      argss = args.split(/,/)
+      args = argss[0]; noteref = argss[1]
+      @ref[0] = true
+   else
+      @noterefNum += 1
+      noteref = "(注#{@noterefNum})"
+      @ref[1] = true
+   end
+   print_error(@refmes)  unless /\A[a-zA-Z0-9_-]+\z/ =~ args
+=begin
+   m = /@<fn>{[^{]+}/.match(phrase)
+   if m.pre_match
+      str = m.pre_match
+      @daisy.compile_inline_tag(str)
+      p = Sent.new(str)
+      @sect.add_phrase(p)
+   end
+   p = Noteref.new(noteref, args)
+   p.sectnum = @sectcount
+   @sect.add_phrase(p)
+   @skip_list[args] << Skip.new(@f, @lineno, p)
+   @daisy.skippable.noteref = "false"
+   if m.post_match
+      str = m.post_match
+      unless /^$/ =~ str
+         @daisy.compile_inline_tag(str)
+         p = Sent.new(str)
+         @sect.add_phrase(p)
+      end
+   end
+=end
+   phr = phrase.sub(/@<fn>{[^{]+}/, %Q[<a rel="note" epub:type="" id="" href="#">#{noteref}</a>])
+   @daisy.compile_inline_tag(phr)
+   @daisy.skippable.noteref = "false"
+   p = Noteref.new(phr, args)
+   p.noteref = noteref unless argss ##
+   @sect.add_phrase(p)
+   @skip_list[args] << Skip.new(@f, @lineno, p)
 end
 
 def read_phrase(phr, f)
@@ -456,6 +550,7 @@ def note_flat(phr, args, type)
          str = str + p + "\n"
          next if 'Sidebar' == type or 'Quote' == type
          pp = eval ("#{type}.new(p, args)")
+         pp.sectnum = @sectcount
          @sect.add_phrase(pp)
          if 'Prodnote' == type
             result = pp.valid_render?
@@ -619,6 +714,7 @@ def set_note_ref_chain
          elsif noteref?(s.obj) or annoref?(s.obj)
             unless child.nil?
                s.obj.child = child
+               s.obj.child.noteref = s.obj.noteref unless s.obj.noteref.nil?
             end
             child = nil
          end
@@ -706,6 +802,7 @@ def main
       debug = values["debug"]
 
       values["multimediaType"] = @params["type"] unless @params["type"].nil?
+      values["pagedirection"] = @params["pagedirection"] unless @params["pagedirection"].nil?
 
       bookname = File.basename(yamlfile, ".yaml")
       if File.exist?(bookname)
@@ -735,9 +832,13 @@ yaml ファイルもしくは、オプションで図書タイプを指定して
       @tagids = ti
       s = Hash.new {|s, key| s[key] = []}
       @skip_list = s
+      @noterefNum = 0
+      @ref = Array.new(2)
       if File.exists?("SECTIONS")
          File.open("SECTIONS") {|section|
             section.each_line {|file|
+               next if /^#/ =~ file
+               @indtbegin = @indtend = 0
                if /\Acover(?:.txt)?/ =~ file
                   @daisy.build_cover(file.chomp)
                   next
@@ -747,6 +848,14 @@ yaml ファイルもしくは、オプションで図書タイプを指定して
                   @f = f
                   check_phrase_type(f)
                }
+               unless @indtbegin == @indtend
+                  mes = "インデントタグのはじまりと終わりの数が合いません。
+file: #{file.chomp} begin:#{@indtbegin} end:#{@indtend}\n"
+                  print_error(mes)
+               end
+               if @ref[0] && @ref[1]
+                  puts "注釈番号の指定で、有りと無しが混在しています。#{file.chomp}"
+               end
             }
          }
       else
@@ -762,11 +871,13 @@ yaml ファイルもしくは、オプションで図書タイプを指定して
       @daisy.build_opf
       @daisy.copy_files
       FileUtils.rm_r(temp) if debug.nil?
+#=begin
    rescue => err
       STDERR.puts err
       FileUtils.rm_r(temp) if debug.nil? and File.exist?(temp)
       FileUtils.rm_r(bookname) if debug.nil? and File.exist?(bookname)
    end
+#=end
 end
 
 def print_error(errmes)
