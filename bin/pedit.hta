@@ -1,0 +1,617 @@
+<!-- pedit.hta Copyright (c) 2012 Kishida Atsushi -->
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=Windows-31J" />
+   <HTA:APPLICATION ID="peditbin" ApplicationName="peditexe">
+   <title>pedit 1.0</title>
+<script language="RubyScript">
+LEVEL_LIST = %Q[<select name="headlevel" onchange="level">
+   <option value="0" selected>なし
+   <option value="1">レベル１
+   <option value="2">レベル２
+   <option value="3">レベル３
+   <option value="4">レベル４
+   <option value="5">レベル５
+   <option value="6">レベル６
+</select>]
+INDENT = %Q[
+   <option value="0" selected>なし
+   <option value="1">１字下げ
+   <option value="2">２字下げ
+   <option value="3">３字下げ
+   <option value="4">４字下げ
+   <option value="5">５字下げ
+   <option value="6">６字下げ
+   <option value="7">７字下げ
+   <option value="8">８字下げ
+   <option value="9">９字下げ
+   <option value="x">地付き
+   <option value="x1">１字上げ
+   <option value="x2">２字上げ
+   <option value="x3">３字上げ
+   <option value="x4">４字上げ
+   <option value="x5">５字上げ
+   <option value="x6">６字上げ
+   <option value="x7">７字上げ
+   <option value="x8">８字上げ
+   <option value="x9">９字上げ
+</select>]
+INDENT_LIST = %Q[<select name="indent" onchange="indent">#{INDENT}]
+INLINE_INDENT_LIST = %Q[<select name="inlindent" onchange="inlindent">#{INDENT}]
+IMAGE_LIST = %Q[<select name="image" onchange="image">
+   <option value="0" selected>なし
+   <option value="1">キャプションなし
+   <option value="2">キャプション有り
+</select>]
+TABLE_LIST = %Q[<select name="table" onchange="table">
+   <option value="0" selected>なし
+   <option value="1">キャプションなし
+   <option value="2">キャプションなし、横見出し
+   <option value="3">キャプションなし、縦見出し
+   <option value="4">キャプションなし、縦横見出し
+   <option value="5">キャプション有り
+   <option value="6">キャプション有り、横見出し
+   <option value="7">キャプション有り、縦見出し
+   <option value="8">キャプション有り、縦横見出し
+</select>]
+NOTE_LIST = %Q[<select name="note" onchange="note">
+   <option value="0" selected>なし
+   <option value="1">注釈番号
+   <option value="2">注釈
+   <option value="3">製作者注（ブロック）
+   <option value="4">製作者注（インライン）
+   <option value="5">annotation
+   <option value="6">sidebar
+   <option value="7">sidebarキャプション付き
+   <option value="8">linenum
+</select>]
+MODIFY_LIST = %Q[<select name="modify" onchange="modify">
+   <option value="0" selected>なし
+   <option value="1">太字
+   <option value="12">太字ブロック
+   <option value="2">斜体
+   <option value="22">斜体ブロック
+   <option value="3">下線
+   <option value="33">下線ブロック
+   <option value="4">傍点
+   <option value="5">上付き
+   <option value="6">下付き
+   <option value="7">ルビ（青空文庫形式）
+   <option value="72">ルビ（青空文庫形式）範囲付き
+   <option value="8">ルビ（ReVIEW 形式）
+</select>]
+QUOTE_LIST = %Q[<select name="quote" onchange="quote">
+   <option value="0" selected>なし
+   <option value="1">引用
+</select>]
+LIST_LIST = %Q[<select name="list" onchange="list">
+   <option value="0" selected>なし
+   <option value="1">箇条書きリスト
+   <option value="2">数字付きリスト（１）
+   <option value="3">数字付きリスト（ａ）
+   <option value="4">数字付きリスト（Ａ）
+   <option value="5">数字付きリスト（ｉ）
+   <option value="6">数字付きリスト（Ｉ）
+   <option value="7">用語リスト
+</select>]
+def load
+   show ""
+   encode()
+   @textarea = @window.editarea
+   @f = @window.document.all("path").value
+   chk_join = @window.document.all('join')
+   unless "" == @f
+      p = File.dirname(File.expand_path(@f))
+      Dir.chdir(p)
+      @lines = ""
+      begin
+         File.open(@f, "r:#{@encode}") {|file|
+            file.each_line {|line|
+               line = join(line.encode("Windows-31J")) if chk_join.checked
+               @lines += line
+            }
+         }
+         @textarea.value = @lines.encode("Windows-31J")
+      rescue
+         show "文字コードが違うようです"
+         @textarea.value = ""
+      end
+   else
+      @window.alert "ファイルを指定してください"
+   end
+end
+
+def save
+   lines = @textarea.value
+   s_lines = lines.split(/\n/)
+   extname = File.extname(@f)
+   basename = File.basename(@f, extname)
+   fname = "#{basename}-edit#{extname}"
+   File.open(fname, "w:UTF-8") {|sfile|
+      s_lines.each {|line|
+         sfile.print line.force_encoding("UTF-8")
+      }
+      show "#{fname}に保存しました。"
+   }
+end
+
+def encode
+   @encode = ""
+   enc_chk = @window.document.all("encode")
+   enc_chk.each {|enc| @encode = enc.value if enc.checked}
+end
+
+def phrase
+   @lines = @textarea.value
+   pr = "。".force_encoding("Windows-31J")
+   @lines.force_encoding("Windows-31J")
+   new_lines = ""
+   cr_line = @lines.split(/(\n)/)
+   cr_line.each {|cline|
+      s_line = cline.split(/#{pr}/)
+      num = s_line.size - 1
+      s_line.each_with_index {|sline, i|
+         if num > i
+            new_lines = new_lines + sline + pr + "\n"
+         else
+            new_lines = new_lines + sline
+         end
+      }
+   }
+   @lines = new_lines
+   @textarea.value = @lines
+end
+
+def join(line)
+   reg = "。」？－・…" .force_encoding("Windows-31J")
+   page = "ページ|ぺーじ" .force_encoding("Windows-31J")
+   unless /[#{reg}]\Z/ =~ line
+      return line if "\n" == line
+      return line if /\A=+\s+/ =~ line
+      return line if 30 > line.size
+      return line.chomp! unless /\d+#{page}\Z/ =~ line
+   end
+   return line + "\n"
+end
+
+def tags
+   tag_gloup = @window.document.all('tags').value
+   span = @window.taglist
+   case tag_gloup
+   when '0'
+      select = ""
+   when '1'
+      select = LEVEL_LIST
+   when '2'
+      select = INDENT_LIST
+   when '22'
+      select = INLINE_INDENT_LIST
+   when '3'
+      select = IMAGE_LIST
+   when '4'
+      select = TABLE_LIST
+   when '5'
+      select = NOTE_LIST
+   when '6'
+      select = MODIFY_LIST
+   when '7'
+      select = QUOTE_LIST
+   when '8'
+      select = LIST_LIST
+   end
+   span.innerHTML = select
+end
+
+def level
+   s = @window.editarea.document.selection.createRange()
+   l = @window.document.all('headlevel').value
+   unless "" == s.text
+      if "0" == l
+         tagoff(s)
+         show "見出しを解除しました"
+      else
+         level = "=" * l.to_i
+         s.text = "#{level} #{s.text}"
+         show "見出しを設定しました"
+      end
+   else
+      rangeAlert(@window.document.all('headlevel'))
+   end
+end
+
+def indent
+   s = @window.editarea.document.selection.createRange()
+   i = @window.document.all('indent').value
+   unless "" == s.text
+      if "0" == i
+         tagoff(s)
+         show "インデントを解除しました"
+      else
+         s.text = "//indent[#{i}]\n#{s.text}\n//indentend"
+         show "インデントを設定しました"
+      end
+   else
+      rangeAlert(@window.document.all('indent'))
+   end
+end
+
+def inlindent
+   s = @window.editarea.document.selection.createRange()
+   i = @window.document.all('inlindent').value
+   unless "" == s.text
+      if /\A(=+[\s　]+)(.+)\z/ =~ s.text
+         if '0' == i
+            tagoff(s)
+            show "インデント（見出し用）を解除しました"
+         else
+            s.text = "#{$1}@<indent>{#{i},#{$2}}"
+            show "インデント（見出し用）を設定しました"
+         end
+      else
+         show "見出し専用です。見出し記号まで含めて選択してください"
+      end
+   else
+      rangeAlert(@window.document.all('inlindent'))
+   end
+end
+
+def image
+   s = @window.editarea.document.selection.createRange()
+   i = @window.document.all('image').value
+   unless "" == s.text
+      if "0" == i
+         tagoff(s)
+         show "画像を解除しました"
+      elsif "1" == i
+         s.text = "//image[]{\n#{s.text}\n//}"
+         show "画像を設定しました"
+      else
+         s.text = "//image[][caption]{\n#{s.text}\n//}"
+         show "画像（キャプション付き）を設定しました"
+      end
+   else
+      rangeAlert(@window.document.all('image'))
+   end
+end
+
+def table
+   s = @window.editarea.document.selection.createRange()
+   t = @window.document.all('table').value
+   h = "---------\n"
+   v = "|||||||||\n"
+   hv = "+++++++++\n"
+   unless "" == s.text
+      case t
+      when '0'
+         tagoff(s)
+         show "表タグを解除しました"
+      when '1'
+         s.text = "//table[]{\n#{s.text}\n//}"
+         show "表・キャプションなしを設定しました"
+      when '2'
+         s.text = "//table[]{\n#{h}#{s.text}\n//}"
+         show "表・キャプションなし、横見出しを設定しました"
+      when '3'
+         s.text = "//table[]{\n#{v}#{s.text}\n//}"
+         show "表・キャプションなし、縦見出しを設定しました"
+      when '4'
+         s.text = "//table[]{\n#{hv}#{s.text}\n//}"
+         show "表・キャプションなし、縦横見出しを設定しました"
+      when '5'
+         s.text = "//table[][caption]{\n#{s.text}\n//}"
+         show "表・キャプション有りを設定しました"
+      when '6'
+         s.text = "//table[][caption]{\n#{h}#{s.text}\n//}"
+         show "表・キャプション有り、横見出しを設定しました"
+      when '7'
+         s.text = "//table[][caption]{\n#{v}#{s.text}\n//}"
+         show "表・キャプション有り、縦見出しを設定しました"
+      when '8'
+         s.text = "//table[][caption]{\n#{hv}#{s.text}\n//}"
+         show "表・キャプション有り、縦横見出しを設定しました"
+      end
+   else
+      rangeAlert(@window.document.all('table'))
+   end
+end
+
+def note
+   mes1 = "できるだけ改行を含まない一行に設定してください。識別子は入っていません"
+   s = @window.editarea.document.selection.createRange()
+   crnum = s.text.count("\n")
+   n = @window.document.all('note').value
+   unless "" == s.text
+      case n
+      when '0'
+         tagoff(s)
+         show "注釈類を解除しました"
+      when '1'
+         if 1 > crnum
+            s.text = "@<fn>{,#{s.text}}"
+            show "注釈番号。識別子は入っていません"
+         else
+            show "注釈番号部分だけを選択してください。複数行には設定できません。"
+         end
+      when '2'
+         s.text = "//footnote[]{\n#{s.text}\n//}"
+         if 1 > crnum
+            show "注釈。識別子は入っていません"
+         else
+            show mes1
+         end
+      when '3'
+         s.text = "//prodnote[o]{\n#{s.text}\n//}"
+         if 1 > crnum
+            show "製作者注。render属性はoptionalに設定されています"
+         else
+            show "できるだけ改行を含まない一行に設定してください。render属性はoptionalに設定されています"
+         end
+      when '4'
+         if 1 > crnum
+            s.text = "@<pn>[o]{#{s.text}}"
+            show "製作者注（インライン）。render属性はoptionalに設定されています"
+         else
+            show "インライン記法では複数行を処理できません"
+         end
+      when '5'
+         s.text = "//annotation[]{\n#{s.text}\n//}"
+         if 1 > crnum
+            show "annotation。識別子は入っていません"
+         else
+            show mes1
+         end
+      when '6'
+         s.text = "//sidebar[]{\n#{s.text}\n//}"
+         if 1 > crnum
+            show "sidebar。識別子は入っていません"
+         else
+            show mes1
+         end
+      when '7'
+         s.text = "//sidebar[][caption]{\n#{s.text}\n//}"
+         if 1 > crnum
+            show "sidebar。識別子は入っていません。キャプションを入れてください"
+         else
+            show mes1
+         end
+      when '8'
+         show "linenumはまだ実装されていないため使用できません"
+      end
+   else
+      rangeAlert(@window.document.all('note'))
+   end
+end
+
+def modify
+   s = @window.editarea.document.selection.createRange()
+   crnum = s.text.count("\n")
+   m = @window.document.all('modify').value
+   unless "" == s.text
+      case m
+      when '0'
+         tagoff(s)
+         show "修飾タグを解除しました"
+      when '1'
+         s.text = "@<b>{#{s.text}}"
+         show "太字タグを設定しました"
+      when '12'
+         if 0 == crnum
+            show "行単位で範囲を指定してください"
+         else
+            s.text = "//bold{\n#{s.text}\n//}"
+            show "太字タグ（ブロック）を設定しました"
+         end
+      when '2'
+         s.text = "@<i>{#{s.text}}"
+         show "斜体タグを設定しました"
+      when '22'
+         if 0 == crnum
+            show "行単位で範囲を指定してください"
+         else
+            s.text = "//italic{\n#{s.text}\n//}"
+            show "斜体タグ（ブロック）を設定しました"
+         end
+      when '3'
+         s.text = "@<u>{#{s.text}}"
+         show "下線タグを設定しました"
+      when '32'
+         if 0 == crnum
+            show "行単位で範囲を指定してください"
+         else
+            s.text = "//underline{\n#{s.text}\n//}"
+            show "下線タグ（ブロック）を設定しました"
+         end
+      when '4'
+         s.text = "@<s>{#{s.text}}"
+         show "傍点タグを設定しました"
+      when '5'
+         s.text = "@<sup>{#{s.text}}"
+         show "上付きタグを設定しました"
+      when '6'
+         s.text = "@<sub>{#{s.text}}"
+         show "下付きタグを設定しました"
+      when '7'
+         s.text = "#{s.text}《ルビ》"
+         show "ルビタグ（青空文庫形式）を設定しました。正しいルビに置き換えてください"
+      when '72'
+         s.text = "｜#{s.text}《ルビ》"
+         show "ルビタグ（青空文庫形式範囲付き）を設定しました。正しいルビに置き換えてください"
+      when '8'
+         s.text = "@<ruby>{#{s.text},（ルビ）}"
+         show "ルビタグ（ReVIEW形式）を設定しました。正しいルビに置き換えてください"
+      end
+   else
+      rangeAlert(@window.document.all('modify'))
+   end
+end
+
+def quote
+   s = @window.editarea.document.selection.createRange()
+   q = @window.document.all('quote').value
+   unless "" == s.text
+      case q
+      when '0'
+         tagoff(s)
+         show "引用タグを解除しました"
+      when '1'
+         s.text = "//quote{\n#{s.text}\n//}"
+         show "引用タグを設定しました"
+      end
+   else
+      rangeAlert(@window.document.all('quote'))
+   end
+end
+
+def list
+   s = @window.editarea.document.selection.createRange()
+   l = @window.document.all('list').value
+   unless "" == s.text
+      case l
+      when '0'
+         tagoff(s)
+         show "リストを解除しました"
+      when '1'
+         s.text = "//list{\n#{s.text}\n//}"
+         show "箇条書きリストを設定しました"
+      when '2'
+         s.text = "//list[1]{\n#{s.text}\n//}"
+         show "数字付きリストを設定しました"
+      when '3'
+         s.text = "//list[a]{\n#{s.text}\n//}"
+         show "小文字アルファベット付きリストを設定しました"
+      when '4'
+         s.text = "//list[A]{\n#{s.text}\n//}"
+         show "大文字アルファベット付きリストを設定しました"
+      when '5'
+         s.text = "//list[i]{\n#{s.text}\n//}"
+         show "小文字ローマ数字付きリストを設定しました"
+      when '6'
+         s.text = "//list[I]{\n#{s.text}\n//}"
+         show "大文字ローマ数字付きリストを設定しました"
+      when '7'
+         s.text = "//list{\n#{s.text}\n//}"
+         show "用語リストを設定しました。項目名の行頭に（: ）を設定してください"
+      end
+   else
+      rangeAlert(@window.document.all('list'))
+   end
+end
+
+def off
+   s = @window.editarea.document.selection.createRange()
+   unless "" == s.text
+      tagoff(s)
+      show "タグを解除しました"
+      @window.document.all('tags').value = "0"
+   else
+      rangeAlert(@window.document.all("tags"))
+   end
+   @window.taglist.innerHTML = ""
+end
+
+def tagoff(select)
+   t = select.text
+   if /@<(?:b|i|u|s|sup|sub|ruby)>{([^,]+),?[^}]*}/ =~ t
+      t.sub!($&, $1)
+   elsif /｜?([^｜]+)《[^》]*》/ =~ t
+      t.sub!($&, $1)
+   elsif /([^｜]+)《[^》]*》/ =~ t
+      t.sub!($&, $1)
+   elsif /@<fn>{[^,]*,([^}]+)}/ =~ t
+      t.sub!($&, $1)
+   elsif /@<pn>\[[or]\]{([^}]+)}/ =~ t
+      t.sub!($&, $1)
+   elsif /@<indent>{x?[1-9],([^}]+)}/ =~ t
+      t.sub!($&, $1)
+   elsif /\A:\s+|\n:\s+/ =~ t
+      t.gsub!($&, "")
+   else
+      t.sub!(/=+\s+/, "")
+      t.sub!(/\n[-\|\+]+/, "")
+      t.gsub!(%r!//[a-z][a-z]+.*(?:\n|\z)!, "")
+      t.gsub!(%r!\n//}\z!, "")
+   end
+   select.text = t
+end
+
+def rangeAlert(select)
+   @window.alert "文字列が選択されていません"
+   select.value = "0"
+end
+
+def show(str)
+   div = @window.disp
+   div.innerHTML = str
+end
+</script>
+<style type="text/css">
+<!--
+body {font-size: 1.1em;}
+#path {font-size: 0.9em;}
+#box {margin-top: 0.5em; width: 41em;}
+#rbencode {width: 25em;float: left;}
+#chjoin {width: 3em;float: left;}
+#load {width: 4em;float: left;}
+#save {margin-left: 0.4em;width: 4em; float: left;}
+#box2 {width: 42em;margin: 10 10 10 10;}
+#select {width: 27em;float: left;}
+#tagoff {width: 5em;float: left;}
+#dophrase {margin-left:0.3em;width: 4em; float: left;}
+#text {float: clear;}
+#go, #save, #phrase, #tagoff {font-size: 1em;}
+#disp {font-weight: bold;}
+textarea, select {font-size: 1em;}
+-->
+</style>
+</head>
+<body>
+<div>
+ファイル名：<input type="file" id="path" size=60>
+</div>
+<div id="box">
+   <div id="rbencode">
+文字コード：<input type="radio" name="encode" value="UTF-8" checked>UTF-8
+　<input type="radio" name="encode" value="Windows-31J">Shift-JIS
+　<input type="radio" name="encode" value="EUC-JP">EUC-JP
+   </div>
+   <div id="chjoin">
+      <input type="checkbox" id="join" value="join">join
+   </div>
+   <div id="load">
+      <input type="button" id="go" value="読み込み" onclick="load" language="RubyScript">
+   </div>
+   <div id="save">
+      <input type="button" id="save" value="保存" onclick="save">
+   </div>
+</div>
+<div id="box2">
+   <div id="select">
+タグ：<select name="tags" onchange="tags">
+         <option value="0" selected>タグの種類を選択
+         <option value="1">見出し
+         <option value="2">インデント（ブロック）
+         <option value="22">インデント（見出し）
+         <option value="3">画像
+         <option value="4">表
+         <option value="5">注釈
+         <option value="6">文字修飾
+         <option value="7">引用文
+         <option value="8">リスト
+      </select>
+      <span id="taglist"></span>
+   </div>
+   <div id="tagoff">
+      <input type="button" id="tagoff" value="タグ解除" onclick="off">
+   </div>
+   <div id="dophrase">
+      <input type="button" id="phrase" value="フレーズ分け" onclick="phrase">
+   </div>
+</div>
+<div id="text">
+   <textarea rows="20" cols="84" wrap="soft" id="editarea"></textarea>
+</div>
+
+<div id="disp"></div>
+
+</body>
+</htm>
