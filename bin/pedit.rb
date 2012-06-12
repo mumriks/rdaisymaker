@@ -4,20 +4,20 @@
 # Copyright (c) 2011 Kishida Atsushi
 #
 
-VERSION = '0.3.0'
+VERSION = '0.3.3'
 BINDIR = File.dirname(File.expand_path(__FILE__))
 $LOAD_PATH << File.join(BINDIR, "../lib")
 
 require 'fileutils'
 require 'optparse'
 require 'yaml'
-require 'compiler'
-require 'exchangekana'
+require 'rdm/compiler'
+require 'rdm/exchangekana'
 
 $LOAD_PATH.each {|path|
    @mecabso = "#{path}/MeCab.so"
    if File.exists?(@mecabso)
-      require 'mecabex'
+      require 'rdm/mecabex'
       @mecabso = true
       break
    else
@@ -38,7 +38,9 @@ def print_(message)
    end
 end
 
-@params = {"aozora" => nil, "paging" => nil, "split" => true, "ruby" => nil, "bouten" => nil, "log" => nil, "cuttag" => nil, "cutpage" => nil, "poem" => nil}
+@params = {"aozora" => nil, "paging" => nil, "split" => true,
+           "ruby" => nil, "log" => nil, "cuttag" => nil, "cutpage" => nil,
+           "poem" => nil, "ruby_cache" => true}
 parser = OptionParser.new
 scriptfile = File.basename($0)
 parser.banner = "Usage: ruby #{scriptfile} [options]"
@@ -52,18 +54,6 @@ parser.on('-a', '--aozora', '青空文庫を編集（-p -s を含む）') {
    @params["aozora"] = true
    @params["paging"] = true
    @params["split"] = true
-}
-parser.on('-b', '--bu', '傍点を＊下線＊で置き換える（要 -a）') {
-   @params["bouten"] = "underline" if @params["aozora"]
-}
-parser.on('--bb', '傍点を＊太字＊で置き換える（要 -a）') {
-   @params["bouten"] = "bold" if @params["aozora"]
-}
-parser.on('--bi', '傍点を＊斜体＊で置き換える（要 -a）') {
-   @params["bouten"] = "italic" if @params["aozora"]
-}
-parser.on('--nobouten', '傍点を無視（削除）する（要 -a）') {
-   @params["bouten"] = false if @params["aozora"]
 }
 parser.on('-p', '--paging', '自動でページを挿入') {
    @params["paging"] = true
@@ -84,9 +74,25 @@ parser.on('-r', '--rubya', 'ルビを振る（青空文庫 形式）') {
       print_("この環境ではルビは使えません")
    end
 }
+parser.on('--rubyanc', 'ルビを振る（キャッシュなし）'){
+   if @mecabso
+      @params["ruby"] = "aozora"
+      @params["ruby_cache"] = false
+   else
+      print_("この環境ではルビは使えません")
+   end
+}
 parser.on('--rubyr', 'ルビを振る（ReVIEW 形式）'){
    if @mecabso
       @params["ruby"] = "review"
+   else
+      print_("この環境ではルビは使えません")
+   end
+}
+parser.on('--rubyrnc', 'ルビを振る（キャッシュなし）'){
+   if @mecabso
+      @params["ruby"] = "review"
+      @params["ruby_cache"] = false
    else
       print_("この環境ではルビは使えません")
    end
@@ -104,12 +110,10 @@ parser.on('-c', '--cutunknown', '未知の青空文庫タグを削除（要 -a�
 parser.on('--cutpage', '青空文庫の改ページタグを削除（要 -a）') {
    @params["cutpage"] = true if @params["aozora"]
 }
-####
 parser.on('--join','join split line(like PDF => TXT)') {
    @params["join"] = true
    @params["split"] = false
 }
-####
 parser.on('-l', '--log', 'ログファイル作成') {
    @params["log"] = true
 }
@@ -151,21 +155,22 @@ def load_gaiji
    }
 end
 
-def join(line)				##
+def join(line)
    if /[^。」]\n/ =~ line
      line.chomp! unless /\d+(?:ページ|ぺーじ)/ =~ line
    end
    return line
-end					##
+end
 
 def aozora(line)
    @linenum += 1
-#   @genpon = true if /原本奥付/ =~ line
-#   line = genpon_head(line) if /^底本：/ =~ line and !@genpon
-#   line = set_head(line) if /^　　　+/ =~ line
    while /［＃.+］/ =~ line
       if /［＃[^［]*(?:字下げ|字上げ|天付き|地付き|右寄せ).*］/ =~ line
          line, mes = set_indent(line)
+         if /未定義/ =~ mes
+            print_(mes)
+            break
+         end
       elsif /※［＃[^［]+］/ =~ line
          line, result, mes = set_gaiji(line)
          unless result
@@ -182,16 +187,11 @@ def aozora(line)
       elsif /［＃(?:ここから|ここで)罫囲み(?:終わり)?］/ =~ line
          line, mes = set_quote(line)
       elsif /［＃[^［]*傍点[^［]*］/ =~ line
-         if @params["bouten"].nil?
-            mes = "傍点の処理が指定されていないので残します。:#{@f} line- #{@linenum}\n#{line}\n"
-            print_(mes)
-            break
-         elsif !@params["bouten"]
-            mes = "指示により傍点タグを削除します。:#{@f} line- #{@linenum}\n#{line}\n"
-            line.gsub!(/［＃[^［]*傍点[^［]*］/, "")
-         else
-            line, mes = set_modify(line)
-         end
+         line, mes = set_modify(line)
+      elsif /［＃[^［]+は縦中横[^［]*］/ =~ line
+         line, mes = set_vih(line)
+#      elsif /［＃[^［]+は[下上]付き小文字[^［]*］/ =~ line
+#         line, mes = set_supb(line)
       elsif /［＃改(?:丁|ページ|段)］/ =~ line
          if @params["cutpage"]
             mes = "指示によりページタグを削除します。:#{@f} line- #{@linenum}\n#{line}\n"
@@ -227,17 +227,6 @@ def aozora(line)
    line
 end
 
-def bouten_message(line)
-   case @params["bouten"]
-   when "underline"
-      mes = "傍点を「下線」で代用します。:#{@f} line- #{@linenum}\n#{line}\n"
-   when "bold"
-      mes = "傍点を「太字」で代用します。:#{@f} line- #{@linenum}\n#{line}\n"
-   when "italic"
-      mes = "傍点を「斜体」で代用します。:#{@f} line- #{@linenum}\n#{line}\n"
-   end
-end
-
 def count_up(line)
    crcount = line.count("\n")
    @linenum = @linenum + (crcount - 1)
@@ -269,10 +258,6 @@ def split_period(line)
    phrases
 end
 
-def genpon_head(line)
-   "= 原本奥付\n\n" + line
-end
-
 def set_head(line)
    if /［＃「[^「]+」は.*(大|中|小)見出し］/ =~ line
       str = $1
@@ -285,8 +270,6 @@ def set_head(line)
       head = check_head(str)
       line = head + $2 + "\n"
       mes = "#{str}見出しとして処理しました。:#{@f} line- #{@linenum}\n#{line}\n"
-#   elsif /［＃(?:ここから|ここで)(大|中|小)見出し(?:終わり)*］/ =~ line
-#      mes = "処理が未定のため残しています。:#{@f} line- #{@linenum}\n#{line}\n"
    elsif /［＃ここから(大|中|小)見出し］/ =~ line
       str = $1
       head = check_head(str)
@@ -329,15 +312,19 @@ def set_modify(line)
       line = modify_(line, modify, "underline")
       mes = "#{modify}を処理しました。:#{@f} line- #{@linenum}\n#{line}\n"
    elsif /［＃[^［]*傍点[^［]*］/ =~ line
-      line = modify_(line, "傍点", @params["bouten"])
-      mes = bouten_message(line)
+      line = modify_(line, "傍点", "sesamedot")
+      mes = "傍点を処理しました。:#{@f} line- #{@linenum}\n#{line}\n"
    end
    return line, mes
 end
 
 def modify_(line, reg, modify)
    if /［＃「([^「]+)」[^［]*#{reg}］/ =~ line
-      line = modify1(line, $&, modify[0, 1], $1)
+      match = $1
+      if /#{match}［＃「[^「]+」[^［]*#{reg}］/ =~ line
+         line.sub!($&, "@<#{modify[0, 1]}>{#{match}}")
+      end
+      line
    elsif /［＃#{reg}］([^［]+)［＃#{reg}終わ?り］/ =~ line
       line = modify2(line, $&, modify[0, 1], $1)
    elsif /［＃ここから#{reg}］/ =~ line
@@ -348,10 +335,10 @@ def modify_(line, reg, modify)
    end
 end
 
-def modify1(line, reg, modify, str)
-   line.sub!(/#{reg}/, "")
-   line.sub!(str, "@<#{modify}>{#{str}}")
-end
+#def modify1(line, reg, modify, str)
+#   line.sub!(/#{reg}/, "")
+#   line.sub!(str, "@<#{modify}>{#{str}}")
+#end
 
 def modify2(line, reg, modify, str)
    line.sub!(/#{reg}/, "@<#{modify}>{#{str}}")
@@ -387,9 +374,47 @@ def modify_block_end?(line, reg)
 end
 
 def set_indent(line)
-   mes = "インデントは非対応のため削除します。:#{@f} line- #{@linenum}\n#{line}\n"
-   line.sub!(/［＃[^［]*(?:字下げ|字上げ|天付き|地付き)?(?:終わ?り)?］/, "")
+   if /［＃(.)字下げ］/ =~ line
+      num = m2s($1)
+      head = $'.gsub(/\n/, "")
+      str = $&
+      head = "　" * num.to_i + head unless /\A[\s　]+/ =~ head
+      line = %Q[#{$`}@<indent>{#{num},#{head}}\n]
+   elsif /［＃ここから(.)字下げ］/ =~ line
+      num = m2s($1)
+      line.sub!($&, "//indent[#{num}]")
+      str = $&
+   elsif /［＃地付き］/ =~ line
+      line = %Q!#{$`}\n//indent[x]\n#{$'.chomp("\n\n")}\n//indentend\n!
+      str = $&
+   elsif /［＃ここから地付き］/ =~ line
+      line.sub!($&, "//indent[x]")
+      str = $&
+   elsif /［＃地から(.)字上げ］/ =~ line
+      num = m2s($1)
+      line = %Q!#{$`}\n//indent[x#{num}]\n#{$'.chomp("\n\n")}\n//indentend\n!
+      str = $&
+   elsif /［＃ここから地から(.)字上げ］/ =~ line
+      num = m2s($1)
+      line.sub!($&, "//indent[x#{num}]")
+      str = $&
+   elsif /［＃ここで(字下げ|字上げ|地付き)終わり］/ =~ line
+      line.sub!($&, "//indentend")
+      str = $&
+   else
+      mes = "未定義のインデントのため、残します。#{@f} line- #{@linenum}\n#{line}\n"
+   end
+   if mes.nil?
+      mes = "#{str}を処理しました。#{@f} line- #{@linenum}\n#{line}\n"
+   end
+puts line
    return line, mes
+end
+
+def m2s(figure)
+   table = {"１" => "1", "２" => "2", "３" => "3", "４" => "4", "５" => "5",
+          "６" => "6", "７" => "7", "８" => "8", "９" => "9"}
+   figure.sub(/[１２３４５６７８９]/){|key| table[key]}
 end
 
 def set_quote(line)
@@ -398,7 +423,7 @@ def set_quote(line)
       mes = "罫囲みのはじまりを設定しました。:#{@f} line- #{@linenum}\n#{line}\n"
    elsif /［＃ここで罫囲み終わり］/ =~ line
       line = modify_block_end?(line, "［＃ここで罫囲み終わ?り］")
-      mes "罫囲みの終わりを設定しました。:#{@f} line- #{@linenum}\n#{line}\n"
+      mes = "罫囲みの終わりを設定しました。:#{@f} line- #{@linenum}\n#{line}\n"
    end
    return line, mes
 end
@@ -418,6 +443,36 @@ def set_image(line, caption1, filename)
 "
    line.sub!(/［＃(?:[^［]+図|挿絵)（[^（]+\.\w+[^（]*）入る.*(?:〈[^〈]+〉)?］/, tag)
    mes = "画像を設定しました。:#{@f} line- #{@linenum}\n#{line}\n"
+   return line, mes
+end
+
+def set_vih(line)
+   if /［＃「([^」]+)」は縦中横[^［]*］/ =~ line
+      str = $1
+      line.sub!($&, "")
+      line.sub!(str, "@<vih>{#{str}}")
+      mes = "縦中横を設定しました。:#{@f} line- #{@linenum}\n#{line}\n"
+   else
+      mes = "判別できないので残します。:#{@f} line- #{@linenum}\n#{line}\n"
+   end
+   return line, mes
+end
+
+def set_supb(line)
+   if /［＃「([^［]+)」は([下上])付き小文字[^［]*］/ =~ line
+      str = $1; side = $2
+      case side
+      when "上"
+         str2 = "@<sup>{#{str}}"
+      when "下"
+         str2 = "@<sub>{#{str}}"
+      end
+      line.sub!($&, "")
+      line.sub!(/([^{])#{str}([^}])/, "#{$1}#{str2}#{$2}")
+      mes = "#{side}付き小文字を設定しました。:#{@f} line- #{@linenum}\n#{line}\n"
+   else
+      mes = "判別できないので残します。:#{@f} line- #{@linenum}\n#{line}\n"
+   end
    return line, mes
 end
 
@@ -447,7 +502,7 @@ def paging(line)
    else
       words_per_page = @words_per_page
    end
-   if /\A=+\s/ =~ line and 0 < @words #and 2 < @linenum
+   if /\A=+\s/ =~ line and 0 < @words
       l = line.gsub(/\n/, "").size
       unless 0 == @words - l
          line = add_page_befour(line)
@@ -482,17 +537,21 @@ end
 def add_page
    @linenum += 3
    @pagenum += 1
-   pagestr = "\n#{@pagenum}ページ\n\n"
+   pagestr = "#{@pagenum}ページ\n"
 end
 
-@kanji = TEXTDaisy::KANJI
-@kana = TEXTDaisy::KANA
+@kanji = Daisy::KANJI
+@kana = Daisy::KANA
+@zenkigou = Daisy::ZENKIGOU
+@druby = {}
+
 def check_ruby(line)
    line2 = line
    lineArray = []
    num = 0
    noruby = []
-   while m = /#{@kanji}*｜?#{@kanji}+《[^《]+》#{@kana}*/.match(line2)
+   while m = /｜?(#{@kanji}*#{@kanji}+)《([^《]+)》#{@kana}*/.match(line2)
+      @druby[$1] = $2 if @params["ruby_cache"]
       rubyarea = $&; befourstr = m.pre_match #$`
       unless befourstr == ""
          lineArray << befourstr
@@ -524,15 +583,19 @@ def split_reading(str, reading)
          after_hira = nil
       end
       if /#{@kanji}+/ =~ befour and befour_hira != nil
-         rubystr = rubystr + "#{befour}《#{befour_hira}》" if @params["ruby"] == "aozora"
-         rubystr = rubystr +  "@<ruby>{#{befour},#{befour_hira}}" if @params["ruby"] == "review"
+         befour_hira = @druby[befour] unless @druby[befour].nil?
+         befour_hira = ExchangeKana.new(befour_hira).to_katakana
+         rubystr = rubystr + "#{befour}《y#{befour_hira}》" if @params["ruby"] == "aozora"
+         rubystr = rubystr +  "@<ruby>{#{befour},y#{befour_hira}}" if @params["ruby"] == "review"
       end
       rubystr =  rubystr + "#{m}"
       str = after; readHira = after_hira
    end
    if /\A#{@kanji}+\z/ =~ str
-      rubystr = rubystr + "#{str}《#{readHira}》" if @params["ruby"] == "aozora"
-      rubystr = rubystr + "@<ruby>{#{str},#{readHira}}" if @params["ruby"] == "review"
+      readHira = @druby[str] unless @druby[str].nil?
+      readHira = ExchangeKana.new(readHira).to_katakana unless readHira.nil?
+      rubystr = rubystr + "#{str}《y#{readHira}》" if @params["ruby"] == "aozora"
+      rubystr = rubystr + "@<ruby>{#{str},y#{readHira}}" if @params["ruby"] == "review"
    end
    rubystr
 end
@@ -564,6 +627,7 @@ def addRuby(line)
    lineArray.each {|l|
       str = str + l
    }
+   str.sub!($1, "#{$1} ") if /\A(=+)/ =~ str
    str
 end
 
@@ -642,6 +706,11 @@ def edit(file)
                lines[i] = split4ruby(line)
             }
             line = new_line(lines)
+            if @params["wakati"]
+               line = wakati(line)
+            end
+         elsif @params["add_yomi"]
+            line = add_yomi?(line)
          elsif @params["paging"]
             line = addRuby(line) + "\n" if @params["ruby"]
             line = paging(line)
@@ -649,16 +718,15 @@ def edit(file)
             line = addRuby(line)
          elsif @params["wakati"]
             line = wakati(line)
-         elsif @params["join"]			##
-            line = join(line)			##
+         elsif @params["join"]
+            line = join(line)
          end
-         if @params["join"] or 0 < @head	##
-            @efile.print line			##
-         else					##
+         if @params["join"] or 0 < @head
+            @efile.print line
+         else
             @efile.puts line
-         end					##
+         end
       }
-      #@efile.puts(paging("［＃改ページ］")) if @params["paging"]
    }
 end
 
@@ -677,13 +745,14 @@ def main
    elsif File.exists?("SECTIONS")
       File.open("SECTIONS") {|section|
          section.each_line {|file|
-            edit(file)
+            edit(file) unless /\A#/ =~ file
          }
       }
    else
       puts "SECTIONS ファイルがありません。"
    end
    @logfile.close if @params["log"]
+#   @druby.each {|key, yomi| puts "#{key}, #{yomi}" }
 end
 
 main

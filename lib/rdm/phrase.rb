@@ -8,10 +8,8 @@ class Phrase
    def initialize(phrase, args = nil)
       @phrase = phrase
       @args = args
-      @yomi = ""
-      split_yomi($1) if %r!//{([^{]+)}! =~ @phrase
    end
-   attr_accessor :phrase, :args, :readid, :totalid, :yomi
+   attr_accessor :phrase, :args, :readid, :totalid
 
    def unify_period
       kana = TEXTDaisy::KANA
@@ -28,10 +26,6 @@ class Phrase
    end
    def namedowncase
       "#{self.class}".downcase
-   end
-   def split_yomi(str)
-      @yomi = str
-      @phrase = @phrase.sub(%r!//{[^{]+}!, "")
    end
 end
 
@@ -379,7 +373,7 @@ class Quote < PhraseTag
       p = Sent.new(phrase)
       @lines << p
    end
-   attr_accessor :lines #, :totalid, :readid
+   attr_accessor :lines, :border#, :totalid, :readid
 #   def initialize(phrase, args = nil)
 #      super
 #   end
@@ -431,12 +425,49 @@ class Indent < Phrase
 
    def valid_args?
       unless "end" == @args
-         unless /x[1-9]?|[1-9]/ =~ @args
+         unless /x[1-9]?|-?[1-9]/ =~ @args
             mes = "インデント指定できるのは、1 から 9 の数字ひともじ、
 もしくは、頭に x をつけて 1 から 9 までの数字ひともじです。"
             STDERR.puts mes
             exit 1
          end
       end
+   end
+end
+
+class List < PhraseTag
+   def initialize(phrase)
+      super
+   end
+   attr_accessor :ncxsrc, :type, :enum, :dl
+
+   def set_type(dltag, type, enum)
+      @type = type
+      @enum = enum
+      @dl = dltag
+   end
+   def cut_headmark
+      if 'ul' == @type
+         reg = Regexp.new("^[*・]\s+")
+      elsif '1' == @enum
+         reg = Regexp.new("^[0-9]+\.?\s+")
+      elsif 'a' == @enum
+         reg = Regexp.new("^[a-z]+\.?\s+")
+      elsif 'A' == @enum
+         reg = Regexp.new("^[A-Z]+\.?\s+")
+      elsif 'i' == @enum
+         reg = Regexp.new("^[ivxｉｖｘⅰ-ⅻ]+\.?\s+")
+      elsif 'I' == @enum
+         reg = Regexp.new("^[IVXＩＶＸⅠ-Ⅻ]+\.?\s+")
+      elsif /dt/ =~ @dl
+         reg = Regexp.new("^:\s+")
+      end
+      @phrase.sub!(reg, "") if reg
+   end
+   def compile_xml(daisy)
+      daisy.compile_list(self)
+   end
+   def compile_smil(daisy)
+      daisy.compile_smil_text(self)
    end
 end

@@ -9,8 +9,9 @@ class TEXTDaisy < Daisy3
       @xmeta.multimediaContent = "text"
       @xmeta.totalElapsedTime = "0:00:00.000"
       @meta.format = "ANSI/NISO Z39.86-2005"
+      @sesame = false
    end
-   attr_accessor :sesame
+   attr_accessor :sesame, :add_yomi
 
    def build_cover(file)
       return
@@ -39,6 +40,7 @@ class TEXTDaisy < Daisy3
         distpath = "#{@bookname}/#{@bookname}#{ext}"
         FileUtils.cp(File.join(BINDIR, "../doc/common#{ext}"), distpath)
       }
+      FileUtils.cp(File.join(BINDIR, "../doc/boten2.png"), "#{@bookname}/boten2.png") if @sesame
    end
    def copy_image(image, dstname)
       unless File.exist?("#{@temp}/#{@bookname}/Images")

@@ -4,13 +4,14 @@
 
 class TEXTDaisy4 < Daisy4
 
-   JAR = File.join(BINDIR, "../lib/rdm/epubcheck/epubcheck-3.0b4.jar")
+   JAR = File.join(BINDIR, "../lib/rdm/epubcheck/epubcheck-3.0b5.jar")
 
    def initialize(values)
       super
       @xmeta.multimediaType = "textstream"
       @meta.format = "EPUB3"
    end
+   attr_accessor :datevih
 
    def build_cover(file)
       File.open("#{@c_path}/cover.xhtml", "w:UTF-8") {|xf|
@@ -83,6 +84,7 @@ class TEXTDaisy4 < Daisy4
    def build_xhtml_smil
       @chapcount = 0
       @sectcount = 0
+      @m_indent = false
       self.book.each {|chapter|
          @level = 1
          @chapcount += 1

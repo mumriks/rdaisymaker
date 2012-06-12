@@ -9,7 +9,10 @@ class Daisy
 
    ZENKIGOU = Regexp.new("[！”＃＄％＆’（）＝～｜￥「」＜＞｛｝【】『』〔〕≪≫・；：＋＊－／＠‘　、。]")
    ZENEISU = Regexp.new("[０-９ａ-ｚＡ-Ｚ]")
-   KANA = Regexp.new("[ぁ-ゖァ-ヺー]")
+#   KANA = Regexp.new("[ぁ-ゖァ-ヺー]")
+   HIRA = Regexp.new("[ぁ-ゖ]")
+   KATA = Regexp.new("[ァ-ヺー]")
+   KANA = Regexp.new("[#{HIRA}#{KATA}]")
 #   KANJI = Regexp.new("[^#{KANA}#{ZENEISU}#{ZENKIGOU}!-~]")
    KANJI = Regexp.new("[^#{KANA}#{ZENEISU}#{ZENKIGOU}!-~\s]")
 
@@ -44,7 +47,10 @@ class Daisy
          args = $2
          case type
          when '<ruby>'
-            inline_tag_syntax_err(str) unless /.+,.+/ =~ args
+            unless /.+,.+/ =~ args
+               mes = "ルビタグの文法が違うようです：#{str}"
+               print_error(mes)
+            end
             kanji, ruby = args.split(/,/)
             tag = tag_ruby(kanji, ruby, 'review')
          when '<i>'
@@ -54,16 +60,32 @@ class Daisy
          when '<u>'
             tag = tag_underline(args)
          when '<s>'
-            tag = tag_sesamedot(args) if self.kind_of?(Daisy4)
-            tag = check_instead(str, args) if self.kind_of?(Daisy3)
+            if self.kind_of?(Daisy3)
+               @sesame = true
+               tag = ""
+               args.scan(/./).each {|s|
+                  tag += tag_sesamedot(s)
+               }
+            else
+               tag = tag_sesamedot(args)
+            end
          when '<sup>'
             tag = tag_sup(args)
          when '<sub>'
             tag = tag_sub(args)
+         when '<vih>'
+            tag = tag_vih(args)
+         when '<date>'
+            tag = tag_date(args)
+         when '<indent>'
+            tag = tag_indent(args)
+            if "err" == tag
+               print_error("記法が違っているようです : \n#{str}")
+            end
          else
             print_error("未定義のインラインタグです : \n#{str}")
          end
-         str.sub!(/@#{type}{#{args}}/, tag)
+         str.sub!(/@#{type}\{#{args}\}/, tag)
       end
       if /@<\w+>/ =~ str
          print_error("インラインタグの文法が違っているようです : \n#{str}")
@@ -89,12 +111,28 @@ class Daisy
    def tag_sub(args)
       "<sub>#{args}</sub>"
    end
-   def check_instead(str, args)
-      if self.sesame.nil?
-         print_error("傍点の処理が設定されていません : \n#{str}")
-      else
-         puts "傍点を #{self.sesame} で代用します。\n#{str}\n\n"
-         eval("tag_#{self.sesame}(args)")
+
+   def compile_indent(args)
+      if /\Ax?[1-9]/ =~ args
+         @xfile.puts(indent(%Q[<div class="indent_#{args}">], @xindent))
+         @xindent += 2
+      elsif /-/ =~ args
+         @m_indent = true
+      elsif "end" == args
+         if @normal_print
+            if @m_indent
+               @xfile.puts(indent("</p>", @xindent - 2))
+               @xindent -= 2
+               @m_indent = false
+            else
+               @xfile.puts(indent("</p>", @xindent - 2))
+               @xfile.puts(indent("</div>", @xindent - 4))
+               @xindent -= 4
+            end
+            @normal_print = false
+         else
+            @xfile.puts(indent("</div>", @xindent))
+         end
       end
    end
 
@@ -106,7 +144,11 @@ class Daisy
 
    def check_paragraph
       if @paragraph_print
-         @xfile.puts(indent("<p>", @xindent))
+         if @m_indent
+            @xfile.puts(indent(%Q[<p class="indent_-1">], @xindent))
+         else
+            @xfile.puts(indent("<p>", @xindent))
+         end
          @paragraph_print = false
          @xindent = @xindent + 2
       end

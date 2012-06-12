@@ -21,6 +21,124 @@ xmlns:dtb="http://www.daisy.org/z3986/2005/dtbook/">
     </xsl:attribute>
   </xsl:attribute-set>
 
+  <xsl:attribute-set name="sesameDotStyle">
+    <xsl:attribute name="style">
+      padding: 7px 0 0;
+      background: url(boten2.png) no-repeat;
+    </xsl:attribute>
+  </xsl:attribute-set>
+  <xsl:attribute-set name="indent1Style">
+    <xsl:attribute name="style">
+      margin-left: 1em
+    </xsl:attribute>
+  </xsl:attribute-set>
+  <xsl:attribute-set name="indent2Style">
+    <xsl:attribute name="style">
+      margin-left: 2em
+    </xsl:attribute>
+  </xsl:attribute-set>
+  <xsl:attribute-set name="indent3Style">
+    <xsl:attribute name="style">
+      margin-left: 3em
+    </xsl:attribute>
+  </xsl:attribute-set>
+  <xsl:attribute-set name="indent4Style">
+    <xsl:attribute name="style">
+      margin-left: 4em
+    </xsl:attribute>
+  </xsl:attribute-set>
+  <xsl:attribute-set name="indent5Style">
+    <xsl:attribute name="style">
+      margin-left: 5em
+    </xsl:attribute>
+  </xsl:attribute-set>
+  <xsl:attribute-set name="indent6Style">
+    <xsl:attribute name="style">
+      margin-left: 6em
+    </xsl:attribute>
+  </xsl:attribute-set>
+  <xsl:attribute-set name="indent7Style">
+    <xsl:attribute name="style">
+      margin-left: 7em
+    </xsl:attribute>
+  </xsl:attribute-set>
+  <xsl:attribute-set name="indent8Style">
+    <xsl:attribute name="style">
+      margin-left: 8em
+    </xsl:attribute>
+  </xsl:attribute-set>
+  <xsl:attribute-set name="indent9Style">
+    <xsl:attribute name="style">
+      margin-left: 9em
+    </xsl:attribute>
+  </xsl:attribute-set>
+  <xsl:attribute-set name="indentXStyle">
+    <xsl:attribute name="style">
+      text-align: right;
+    </xsl:attribute>
+  </xsl:attribute-set>
+  <xsl:attribute-set name="indentX1Style">
+    <xsl:attribute name="style">
+      margin-right: 1em;
+      text-align: right;
+    </xsl:attribute>
+  </xsl:attribute-set>
+  <xsl:attribute-set name="indentX2Style">
+    <xsl:attribute name="style">
+      margin-right: 2em;
+      text-align: right;
+    </xsl:attribute>
+  </xsl:attribute-set>
+  <xsl:attribute-set name="indentX3Style">
+    <xsl:attribute name="style">
+      margin-right: 3em;
+      text-align: right;
+    </xsl:attribute>
+  </xsl:attribute-set>
+  <xsl:attribute-set name="indentX4Style">
+    <xsl:attribute name="style">
+      margin-right: 4em;
+      text-align: right;
+    </xsl:attribute>
+  </xsl:attribute-set>
+  <xsl:attribute-set name="indentX5Style">
+    <xsl:attribute name="style">
+      margin-right: 5em;
+      text-align: right;
+    </xsl:attribute>
+  </xsl:attribute-set>
+  <xsl:attribute-set name="indentX6Style">
+    <xsl:attribute name="style">
+      margin-right: 6em;
+      text-align: right;
+    </xsl:attribute>
+  </xsl:attribute-set>
+  <xsl:attribute-set name="indentX7Style">
+    <xsl:attribute name="style">
+      margin-right: 7em;
+      text-align: right;
+    </xsl:attribute>
+  </xsl:attribute-set>
+  <xsl:attribute-set name="indentX8Style">
+    <xsl:attribute name="style">
+      margin-right: 8em;
+      text-align: right;
+    </xsl:attribute>
+  </xsl:attribute-set>
+  <xsl:attribute-set name="indentX9Style">
+    <xsl:attribute name="style">
+      margin-right: 9em;
+      text-align: right;
+    </xsl:attribute>
+  </xsl:attribute-set>
+  <xsl:attribute-set name="indentMStyle">
+    <xsl:attribute name="style">
+      margin-left: 3em;
+      text-indent: -1em;
+    </xsl:attribute>
+  </xsl:attribute-set>
+
+
   <!--******************************
    DOCBOOK, HEAD, META, LINK, BOOK
   *******************************-->
@@ -204,6 +322,82 @@ xmlns:dtb="http://www.daisy.org/z3986/2005/dtbook/">
   <!--h1...h6 map directly -->
 
   <xsl:template match="dtb:h1 | dtb:h2 | dtb:h3 | dtb:h4 | dtb:h5 | dtb:h6">
+
+    <xsl:choose>
+      <xsl:when test="@class='indent_1'">
+        <xsl:element name="{local-name(.)}" use-attribute-sets="indent1Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_2'">
+        <xsl:element name="{local-name(.)}" use-attribute-sets="indent2Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_3'">
+        <xsl:element name="{local-name(.)}" use-attribute-sets="indent3Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_4'">
+        <xsl:element name="{local-name(.)}" use-attribute-sets="indent4Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_5'">
+        <xsl:element name="{local-name(.)}" use-attribute-sets="indent5Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_6'">
+        <xsl:element name="{local-name(.)}" use-attribute-sets="indent6Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_7'">
+        <xsl:element name="{local-name(.)}" use-attribute-sets="indent7Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_8'">
+        <xsl:element name="{local-name(.)}" use-attribute-sets="indent8Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_9'">
+        <xsl:element name="{local-name(.)}" use-attribute-sets="indent9Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+    <xsl:otherwise>
+
     <xsl:element name="{local-name(.)}">
       <xsl:if test="@id">
         <xsl:attribute name="id">
@@ -217,6 +411,10 @@ xmlns:dtb="http://www.daisy.org/z3986/2005/dtbook/">
       </xsl:if>
       <xsl:apply-templates />
     </xsl:element>
+
+      </xsl:otherwise>
+    </xsl:choose>
+
   </xsl:template>
 
   <!-- hd as child of level converts to h1...h6 based on number of level ancestors
@@ -349,6 +547,168 @@ xmlns:dtb="http://www.daisy.org/z3986/2005/dtbook/">
       <xsl:when test=". = ''">
         <br/>
       </xsl:when>
+
+      <xsl:when test="@class='indent_-1'">
+        <xsl:element name="p" use-attribute-sets="indentMStyle">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_1'">
+        <xsl:element name="p" use-attribute-sets="indent1Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_2'">
+        <xsl:element name="p" use-attribute-sets="indent2Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_3'">
+        <xsl:element name="p" use-attribute-sets="indent3Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_4'">
+        <xsl:element name="p" use-attribute-sets="indent4Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_5'">
+        <xsl:element name="p" use-attribute-sets="indent5Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_6'">
+        <xsl:element name="p" use-attribute-sets="indent6Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_7'">
+        <xsl:element name="p" use-attribute-sets="indent7Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_8'">
+        <xsl:element name="p" use-attribute-sets="indent8Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_9'">
+        <xsl:element name="p" use-attribute-sets="indent9Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_x'">
+        <xsl:element name="p" use-attribute-sets="indentXStyle">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_x1'">
+        <xsl:element name="p" use-attribute-sets="indentX1Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_x2'">
+        <xsl:element name="p" use-attribute-sets="indentX2Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_x3'">
+        <xsl:element name="p" use-attribute-sets="indentX3Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_x4'">
+        <xsl:element name="p" use-attribute-sets="indentX4Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_x5'">
+        <xsl:element name="p" use-attribute-sets="indentX5Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_x6'">
+        <xsl:element name="p" use-attribute-sets="indentX6Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_x7'">
+        <xsl:element name="p" use-attribute-sets="indentX7Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_x8'">
+        <xsl:element name="p" use-attribute-sets="indentX8Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_x9'">
+        <xsl:element name="p" use-attribute-sets="indentX9Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+
       <xsl:otherwise>
         <xsl:element name="p">
           <xsl:if test="@id">
@@ -369,6 +729,162 @@ xmlns:dtb="http://www.daisy.org/z3986/2005/dtbook/">
 
   <!-- div maps directly -->
   <xsl:template match="dtb:div">
+
+    <xsl:choose>
+      <xsl:when test="@class='indent_1'">
+        <xsl:element name="div" use-attribute-sets="indent1Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_2'">
+        <xsl:element name="div" use-attribute-sets="indent2Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_3'">
+        <xsl:element name="div" use-attribute-sets="indent3Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_4'">
+        <xsl:element name="div" use-attribute-sets="indent4Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_5'">
+        <xsl:element name="div" use-attribute-sets="indent5Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_6'">
+        <xsl:element name="div" use-attribute-sets="indent6Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_7'">
+        <xsl:element name="div" use-attribute-sets="indent7Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_8'">
+        <xsl:element name="div" use-attribute-sets="indent8Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_9'">
+        <xsl:element name="div" use-attribute-sets="indent9Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_x'">
+        <xsl:element name="div" use-attribute-sets="indentXStyle">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_x1'">
+        <xsl:element name="div" use-attribute-sets="indentX1Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_x2'">
+        <xsl:element name="div" use-attribute-sets="indentX2Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_x3'">
+        <xsl:element name="div" use-attribute-sets="indentX3Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_x4'">
+        <xsl:element name="div" use-attribute-sets="indentX4Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_x5'">
+        <xsl:element name="div" use-attribute-sets="indentX5Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_x6'">
+        <xsl:element name="div" use-attribute-sets="indentX6Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_x7'">
+        <xsl:element name="div" use-attribute-sets="indentX7Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_x8'">
+        <xsl:element name="div" use-attribute-sets="indentX8Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+      <xsl:when test="@class='indent_x9'">
+        <xsl:element name="div" use-attribute-sets="indentX9Style">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates />
+        </xsl:element>
+      </xsl:when>
+    <xsl:otherwise>
+
     <xsl:element name="div">
       <xsl:if test="@id">
         <xsl:attribute name="id">
@@ -380,8 +896,19 @@ xmlns:dtb="http://www.daisy.org/z3986/2005/dtbook/">
           <xsl:value-of select="@smilref" />
         </xsl:attribute>
       </xsl:if>
+
+      <xsl:if test="@class">
+        <xsl:attribute name="class">
+          <xsl:value-of select="@class" />
+        </xsl:attribute>
+      </xsl:if>
+
       <xsl:apply-templates />
     </xsl:element>
+
+    </xsl:otherwise>
+    </xsl:choose>
+
   </xsl:template>
 
   <!-- prodnote maps to div with class
@@ -760,6 +1287,15 @@ xmlns:dtb="http://www.daisy.org/z3986/2005/dtbook/">
         <rp>
           <xsl:apply-templates/>
         </rp>
+      </xsl:when>
+
+      <xsl:when test="@class='sesame_dot'">
+        <xsl:element name="span" use-attribute-sets="sesameDotStyle">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates/>
+        </xsl:element>
       </xsl:when>
 
       <xsl:otherwise>

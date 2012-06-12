@@ -19,9 +19,9 @@
     ・通常ページ、front ページ、special ページ
         （注釈番号、注釈、prodnote、annotation、sidebar、
           通常ページ、frontページ、specialページで読み飛ばし設定が有効）
-    ・太字、下線、斜体
-    ・傍点（圏点、EPUB3 でのみ対応）
+    ・太字、下線、斜体、傍点
     ・引用符
+    ・箇条書きリスト（数字なし、数字つき）、用語リスト
     ・句読点の統一（英文中を除く）
 
 
@@ -29,8 +29,10 @@
 
 　必要なファイル。
         ・Ruby-1.9.x ------------------------- 必須
+          (http://www.artonx.org/data/asr/)
 
         ・RDAISYMaker ------------------------ 必須
+          (https://github.com/mumriks/rdaisymaker)
 
         ・image_size ライブラリ -------------- 必須
          （http://rubyforge.org/frs/?group_id=3460）
@@ -43,8 +45,10 @@
 
         ・MeCab ------------------------------ ルビ振りするなら必須
         ・MeCab-Ruby バインディング ---------- 　　　　同上
+          (http://mecab.googlecode.com/svn/trunk/mecab/doc/index.html)
 
         ・epubcheck -------------------------- EPUB3 では望ましい
+          (http://code.google.com/p/epubcheck/)
 
 
 　RDM を使用するには Ruby が必要になります。先に Ruby をインストールしてください。

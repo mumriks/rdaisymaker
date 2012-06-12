@@ -80,35 +80,40 @@ EOT
 EOT
    end
 
+=begin
    def compile_indent(args)
-      if /[1-9x]/ =~ args
+      if /\Ax?[1-9]/ =~ args
          @xfile.puts(indent(%Q[<div class="indent_#{args}">], @xindent))
          @xindent += 2
+      elsif /-/ =~ args
+         @m_indent = true
       elsif "end" == args
          if @normal_print
-            @xfile.puts(indent("</p>", @xindent - 2))
-            @xfile.puts(indent("</div>", @xindent - 4))
-            @xindent -= 4
+            if @m_indent
+               @xfile.puts(indent("</p>", @xindent - 2))
+               @xindent -= 2
+               @m_indent = false
+            else
+               @xfile.puts(indent("</p>", @xindent - 2))
+               @xfile.puts(indent("</div>", @xindent - 4))
+               @xindent -= 4
+            end
             @normal_print = false
          else
             @xfile.puts(indent("</div>", @xindent))
          end
       end
    end
+=end
 
    def print_phrase(phr, idstr)
       @xfile.puts(indent(%Q[<span id="#{idstr}">], @xindent))
-      phrase = phr.phrase.sub(/^[\s　]+/, "")
-      spanpre = %Q[<span speak:ph="#{phr.yomi}">] unless "" == phr.yomi
-      spanpre = "<span>" if "" == phr.yomi
-      if /\A</ =~ phrase
-#         @xfile.puts(indent("<span>", @xindent + 2))
-         @xfile.puts(indent(spanpre, @xindent + 2))
-         @xfile.puts(indent("#{phrase}", @xindent + 4))
+      if /\A</ =~ phr.phrase
+         @xfile.puts(indent("<span>", @xindent + 2))
+         @xfile.puts(indent("#{phr.phrase}", @xindent + 4))
          @xfile.puts(indent("</span>", @xindent + 2))
       else
-#         @xfile.puts(indent(%Q[<span>#{phrase}</span>], @xindent + 2))
-         @xfile.puts(indent(%Q[#{spanpre}#{phrase}</span>], @xindent + 2))
+         @xfile.puts(indent(%Q[<span>#{phr.phrase}</span>], @xindent + 2))
       end
       @xfile.puts(indent("</span>", @xindent))
    end
@@ -126,18 +131,17 @@ EOT
             @xfile.puts(indent("</section>", @xindent))
          }
       end
+      phr.phrase.sub!(/^[\s　]+/, "")
       @xfile.puts(indent(%Q[<section id="s#{idstr}">], @xindent))
       if phr.indent
-         @xfile.puts(indent(%Q[<div class="indent_#{phr.indent}">], @xindent + 2))
+         @xfile.puts(indent(%Q[<h#{phr.args} class="indent_#{phr.indent}">], @xindent + 2))
+      else
+         @xfile.puts(indent("<h#{phr.args}>", @xindent + 4))
       end
-      @xfile.puts(indent("<h#{phr.args}>", @xindent + 4))
       @xindent = @xindent + 6
       print_phrase(phr, idstr)
       @xindent = @xindent - 4
       @xfile.puts(indent("</h#{phr.args}>", @xindent + 2))
-      if phr.indent
-         @xfile.puts(indent("</div>", @xindent))
-      end
    end
 
    def compile_noteref(phr)
@@ -221,6 +225,7 @@ EOT
    end
 
    def compile_text(phr)
+      phr.phrase.sub!(/^[\s　]+/, "") if @paragraph_print
       check_paragraph()
       chapnum, idstr = compile_id(phr)
       phr.ncxsrc = "#{PTK}#{chapnum}.xhtml##{idstr}"
@@ -231,10 +236,21 @@ EOT
    def compile_quote(phr)
       chapnum, idstr = compile_id(phr)
       phr.ncxsrc = "#{PTK}#{chapnum}.xhtml##{idstr}"
-      @xfile.puts(indent(%Q[<blockquote id="#{idstr}">], @xindent))
+      if /\Ab/ =~ phr.border
+         @xfile.puts(indent(%Q[<blockquote id="#{idstr}" class="border">], @xindent))
+      else
+         @xfile.puts(indent(%Q[<blockquote id="#{idstr}">], @xindent))
+      end
       phr.lines.each {|sent|
-         @xfile.puts(indent("<p>", @xindent + 2))
          phrase = sent.phrase.sub(/^[\s　]+/, "")
+         if /^<span class="(x?[1-9])">/ =~ phrase
+            num = $1
+            phrase.sub!(/<span class=".+">/, "")
+            phrase.sub!("</span>", "")
+            @xfile.puts(indent(%Q[<p class="indent_#{num}">], @xindent + 2))
+         else
+            @xfile.puts(indent("<p>", @xindent + 2))
+         end
          @xfile.puts(indent("<span>#{phrase}</span>", @xindent + 4))
          @xfile.puts(indent("</p>", @xindent + 2))
       }
@@ -302,6 +318,40 @@ EOT
       else
          @xindent = @xindent - 2
          @xfile.puts(indent(%Q[</figure>], @xindent))
+      end
+   end
+
+   def compile_list(phr)
+      chapnum, idstr = compile_id(phr)
+      phr.ncxsrc = "#{PTK}#{chapnum}.xhtml##{idstr}"
+      if "begin" == phr.args
+         @xfile.puts(indent("<#{phr.type}>", @xindent))
+      end
+      @xindent += 4
+      if '' == phr.dl
+         @xfile.puts(indent("<li>", @xindent - 2))
+         print_phrase(phr, idstr)
+         @xfile.puts(indent("</li>", @xindent - 2))
+      elsif 'dt' == phr.dl
+         if phr.args.nil?
+            @xfile.puts(indent("</dd>", @xindent - 2))
+         end
+         @xfile.puts(indent("<dt>", @xindent - 2))
+         print_phrase(phr, idstr)
+      elsif 'dd0' == phr.dl
+         @xfile.puts(indent("</dt>", @xindent - 2))
+         @xfile.puts(indent("<dd>", @xindent - 2))
+         print_phrase(phr, idstr)
+      elsif /dd[1-9]+/ =~ phr.dl
+         @xfile.puts(indent("<br />", @xindent - 2))
+         print_phrase(phr, idstr)
+      end
+      @xindent -= 4
+      if "end" == phr.args
+         if 'dl' == phr.type
+            @xfile.puts(indent("</dd>", @xindent + 2))
+         end
+         @xfile.puts(indent("</#{phr.type}>", @xindent))
       end
    end
 
@@ -414,6 +464,14 @@ EOT
    def compile_smil_image(phr)
    end
 
+   def tag_vih(args)
+      if "rtl" == @meta.pageDirection
+         return %Q[<span class="vih">#{args}</span>]
+      elsif "ltr" == @meta.pageDirection
+         return args
+      end
+   end
+
    private
 
    def compile_id(phr)
@@ -455,10 +513,57 @@ EOT
          print_error(errmes)
       end
       unless /#{KANJI}+/ =~ k
-         errmes = "ルビタグの漢字部分が違っているようです : #{rubytag}"
-         print_error(errmes)
+#         errmes = "ルビタグの漢字部分が違っているようです : #{rubytag}"
+#         print_error(errmes)
+         mes = "[注意] 漢字以外が含まれているようです : #{rubytag}"
+         puts mes
       end
-      tag = %Q!<ruby>#{k}<rp>（</rp><rt>#{r}</rt><rp>）</rp></ruby>!
+#      if /#{KATA}+/ =~ r
+      if /\A[yY]/ =~ r
+         r.sub!(/\A[yY]/, "")
+         tag = %Q[<span speak:ph="#{r}">#{k}</span>]
+#        tag = %Q[<s ssml:ph="#{r}">#{k}</s>] #? <span ssml:ph> is not bound
+      else
+         tag = %Q!<ruby>#{k}<rp>（</rp><rt>#{r}</rt><rp>）</rp></ruby>!
+      end
    end
 
+   def tag_date(args)
+      if "rtl" == @meta.pageDirection
+         if @datevih
+            return %Q[<span class="date">#{args}</span>]
+         else
+            return make_date_tag(args)
+         end
+      elsif "ltr" == @meta.pageDirection
+         return args
+      end
+   end
+   def make_date_tag(args)
+      strs = args.split(/(\d+)/)
+      tag = ""
+      strs.each {|str|
+         if /\d+/ =~ str
+            if 2 < str.size
+               ds = str.scan(/./)
+               ds.each {|d|
+                  tag += %Q[<span class="vih">#{d}</span>]
+               }
+            else
+               tag += %Q[<span class="vih">#{str}</span>]
+            end
+         else
+            tag += str
+         end
+      }
+      tag
+   end
+   def tag_indent(args)
+      if /^(x?[1-9]?|[1-9]),(.+)$/ =~ args
+         num = $1
+         sent = $2.sub(/^[\s　]+/, "")
+         return %Q[<span class="#{num}">#{sent}</span>]
+      end
+      return "err"
+   end
 end

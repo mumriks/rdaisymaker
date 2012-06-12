@@ -112,6 +112,12 @@ linenum:after {
 
 div {
   display: block;
+  writing-mode: vertical-rl;
+  -webkit-writing-mode: vertical-rl;
+  -moz-writing-mode: vertical-rl;  /* 未対応 */
+  -o-writing-mode: vertical-rl;  /* 未対応 */
+  -ms-writing-mode: vertical-rl;  /* 未対応 */
+  -epub-writing-mode: vertical-rl;
 }
 div.indent_1 {
   display: block;
@@ -198,6 +204,11 @@ div.indent_x9 {
   margin-bottom: 9em;
   text-align: right;
 }
+div.indent_-1 {
+  display: black;
+  margin-top: 3em;
+  text-indent: -1em;
+}
 
 p {
   display: block;
@@ -256,6 +267,14 @@ blockquote {
   margin-top: 2em;
   margin-right: 0.6em;
   margin-left: 0.6em;
+}
+
+blockquote.border {
+  display: block;
+  margin-top: 2em;
+  margin-right: 0.6em;
+  margin-left: 0.6em;
+  border: 1px solid black;
 }
 
 line {
@@ -324,6 +343,22 @@ span {
   display: inline;
 }
 
+span.vih {
+  text-combine: horizontal;
+  -webkit-text-combine: horizontal;
+  -moz-text-combine: horizontal;
+  -o-text-combine: horizontal;
+  -ms-text-combine: horizontal;
+  -epub-text-combine: horizontal;
+}
+span.date {
+  text-combine-horizontal: digits 2;
+  text-transform: full-width;
+  -webkit-text-combine-horizontal: digits 2;
+  -webkit-text-transform: full-width;
+  -epub-text-combine-horizontal: digits 2;
+  -epub-text-transform: full-width;
+}
 sub {
   display: inline;
   vertical-align : sub;
@@ -381,12 +416,12 @@ q {
   font-style: italic;
 }
 
-noteref, annoref {
+a[epub|type="noteref"], a[epub|type="annoref"], a[rel="note"] {
   display: inline;
-  font-size: 0.7em;
+  font-size: 0.6em;
   vertical-align: super;
-  padding-top: 0.3em;
-  padding-bottom: 0.3em;
+  padding-top: 0.2em;
+  padding-bottom: 0.2em;
   border: 1px solid rgb(210,210,210);
 }
 
@@ -618,30 +653,301 @@ aside.figanno {
   -ms-writing-mode: horizontal-tb;  /* 未対応 */
   -epub-writing-mode: horizontal-tb;
 }
-
-
-/* ------------------------------------------------------------- */
-/*                       span classes                            */
-/* ------------------------------------------------------------- */
- 
-span[class="underline"] {
-  text-decoration: underline;
+/* -----------------------------
+------------------------------*/
+/* 圏点 ビュレット/ゴマ点 */
+span.emphasis_dot,
+em.emphasis_dot,
+strong.emphasis_dot {
+	font-style: normal;
+	font-weight: normal;
+	text-emphasis-style: filled;
+	-webkit-text-emphasis-style: filled;
+	-moz-text-emphasis-style: filled; /* 未対応 */
+	-o-text-emphasis-style: filled; /* 未対応 */
+	-ms-text-emphasis-style: filled; /* 未対応 */
+	-epub-text-emphasis-style: filled;
 }
- 
-/* single and double strikethrough are the same for lack of a CSS property for double strikethrough */
-span[class="strikethrough"], span[class="double-strikethrough"] {
-  text-decoration: line-through;
+/* 圏点 ビュレット */
+span.bullet,
+em.bullet,
+strong.bullet {
+	font-style: normal;
+	font-weight: normal;
+	text-emphasis-style: filled dot;
+	-webkit-text-emphasis-style: filled dot;
+	-moz-text-emphasis-style: filled dot; /* 未対応 */
+	-o-text-emphasis-style: filled dot; /* 未対応 */
+	-ms-text-emphasis-style: filled dot; /* 未対応 */
+	-epub-text-emphasis-style: filled dot;
+}
+/* 圏点 白ビュレット */
+span.white_bullet,
+em.white_bullet,
+strong.white_bullet {
+	font-style: normal;
+	font-weight: normal;
+	text-emphasis-style: open dot;
+	-webkit-text-emphasis-style: open dot;
+	-moz-text-emphasis-style: open dot; /* 未対応 */
+	-o-text-emphasis-style: open dot; /* 未対応 */
+	-ms-text-emphasis-style: open dot; /* 未対応 */
+	-epub-text-emphasis-style: open dot;
+}
+/* 圏点 黒マル */
+span.black_circle,
+em.black_circle,
+strong.black_circle {
+	font-style: normal;
+	font-weight: normal;
+	text-emphasis-style: filled circle;
+	-webkit-text-emphasis-style: filled circle;
+	-moz-text-emphasis-style: filled circle; /* 未対応 */
+	-o-text-emphasis-style: filled circle;/* 未対応 */
+	-ms-text-emphasis-style: filled circle; /* 未対応 */
+	-epub-text-emphasis-style: filled circle; 
+}
+/* 圏点 白マル */
+span.white_circle,
+em.white_circle,
+strong.white_circle {
+	font-style: normal;
+	font-weight: normal;
+	text-emphasis-style: open circle;
+	-webkit-text-emphasis-style: open circle;
+	-moz-text-emphasis-style: open circle; /* 未対応 */
+	-o-text-emphasis-style: open circle;/* 未対応 */
+	-ms-text-emphasis-style: open circle; /* 未対応 */
+	-epub-text-emphasis-style: open circle; 
+}
+/* 圏点 蛇の目 */
+span.fisheye,
+em.fisheye,
+strong.fisheye {
+	font-style: normal;
+	font-weight: normal;
+	text-emphasis-style: filled double-circle;
+	-webkit-text-emphasis-style: filled double-circle;
+	-moz-text-emphasis-style: filled double-circle; /* 未対応 */
+	-o-text-emphasis-style: filled double-circle;/* 未対応 */
+	-ms-text-emphasis-style: filled double-circle; /* 未対応 */
+	-epub-text-emphasis-style: filled double-circle; 
+}
+/* 圏点 二重丸 */
+span.bullseye,
+em.bullseye,
+strong.bullseye {
+	font-style: normal;
+	font-weight: normal;
+	text-emphasis-style: open double-circle;
+	-webkit-text-emphasis-style: open double-circle;
+	-moz-text-emphasis-style: open double-circle; /* 未対応 */
+	-o-text-emphasis-style: open double-circle;/* 未対応 */
+	-ms-text-emphasis-style: open double-circle; /* 未対応 */
+	-epub-text-emphasis-style: open double-circle; 
+}
+/* 圏点 黒三角 */
+span.black_up-pointing_triangle,
+em.black_up-pointing_triangle,
+strong.black_up-pointing_triangle {
+	font-style: normal;
+	font-weight: normal;
+	text-emphasis-style: filled triangle;
+	-webkit-text-emphasis-style: filled triangle;
+	-moz-text-emphasis-style: filled triangle; /* 未対応 */
+	-o-text-emphasis-style: filled triangle;/* 未対応 */
+	-ms-text-emphasis-style: filled triangle; /* 未対応 */
+	-epub-text-emphasis-style: filled triangle; 
+}
+/* 圏点 白三角 */
+span.white_up-pointing_triangle,
+em.white_up-pointing_triangle,
+strong.white_up-pointing_triangle {
+	font-style: normal;
+	font-weight: normal;
+	text-emphasis-style: open triangle;
+	-webkit-text-emphasis-style: open triangle;
+	-moz-text-emphasis-style: open triangle; /* 未対応 */
+	-o-text-emphasis-style: open triangle;/* 未対応 */
+	-ms-text-emphasis-style: open triangle; /* 未対応 */
+	-epub-text-emphasis-style: open triangle; 
+}
+/* 圏点 ゴマ点 */
+span.sesame_dot,
+em.sesame_dot,
+strong.sesame_dot {
+	font-style: normal;
+	font-weight: normal;
+	text-emphasis-style: filled sesame;
+	-webkit-text-emphasis-style: filled sesame;
+	-moz-text-emphasis-style: filled sesame; /* 未対応 */
+	-o-text-emphasis-style: filled sesame;/* 未対応 */
+	-ms-text-emphasis-style: filled sesame; /* 未対応 */
+	-epub-text-emphasis-style: filled sesame; 
+}
+/* 圏点 白ゴマ点 */
+span.white_sesame_dot,
+em.white_sesame_dot,
+strong.white_sesame_dot {
+	font-style: normal;
+	font-weight: normal;
+	text-emphasis-style: open sesame;
+	-webkit-text-emphasis-style: open sesame;
+	-moz-text-emphasis-style: open sesame; /* 未対応 */
+	-o-text-emphasis-style: open sesame;/* 未対応 */
+	-ms-text-emphasis-style: open sesame; /* 未対応 */
+	-epub-text-emphasis-style: open sesame; 
+}
+/* 傍線 */
+span.line_solid,
+em.line_solid,
+strong.line_solid {
+	font-style: normal;
+	font-weight: normal;
+	text-decoration: underline;
+	/* text-decoration-style: solid; */
+}
+/* 二重傍線 */
+span.line_double,
+em.line_double,
+strong.line_double {
+	font-style: normal;
+	font-weight: normal;
+	text-decoration: underline;
+	/* text-decoration-style: double; */
+}
+/* 点線 */
+span.line_dotted,
+em.line_dotted,
+strong.line_dotted {
+	font-style: normal;
+	font-weight: normal;
+	text-decoration: underline;
+	/* text-decoration-style: dotted; */
+}
+/* 破線 */
+span.line_dashed,
+em.line_dashed,
+strong.line_dashed {
+	font-style: normal;
+	font-weight: normal;
+	text-decoration: underline;
+	/* text-decoration-style: dashed; */
+}
+/* 波線 */
+span.line_wave,
+em.line_wave,
+strong.line_wave {
+	font-style: normal;
+	font-weight: normal;
+	text-decoration: underline;
+	/* text-decoration-style: wave; */
 }
 
-span[class="small-caps"] {
-  font-variant: small-caps;
-} 
 
-/*  */
-
-ruby {
+/*----------------------------------------------------------
+ナビゲーション
+----------------------------------------------------------*/
+/*ナビゲーション  リスト */
+nav ol {
+	margin-left: 1em;
+	margin-right: 1em;
+	list-style-type: none;
 }
 
-rt {
- font-size: 0.5em;
+
+/* 第1レベル */
+nav ol li {
+	margin-top: 0.26em;
+	margin-bottom: 0.26em;
+	font-size: 1.78em;
+	line-height: 1.6;
 }
+
+nav ol li ol {
+	font-size: 0.56em; /* フォントサイズ調整 */
+}
+
+/* 第2レベル */
+nav ol li ol li {
+	margin-top: 0.9em;
+	margin-bottom: 0.9em;
+	font-size: 1.11em;
+	line-height: 1.6;
+}
+
+nav ol li ol li ol {
+	font-size: 0.9em; /* フォントサイズ調整 */
+}
+
+/* 第3レベル */
+nav ol li ol li ol li {
+	margin-top: 0.62em;
+	margin-bottom: 0.62em;
+	font-size: 1em;
+	line-height: 1.6;
+}
+
+nav ol li ol li ol il ol {
+	font-size: 1em; /* フォントサイズ調整 */
+}
+
+/* 第4レベル */
+nav ol li ol li ol li ol li  {
+	margin-top: 0.26em;
+	margin-bottom: 0.26em;
+	font-size: 0.89em;
+	line-height: 1.6;
+}
+
+nav ol li ol li ol il ol li ol {
+	font-size: 1.12em; /* フォントサイズ調整 */
+}
+
+/* 第5レベル */
+nav ol li ol li ol li ol li ol li {
+	margin-top: 0.41em;
+	margin-bottom: 0.41em;
+	font-size: 0.78em;
+	line-height: 1.6;
+}
+
+nav ol li ol li ol il ol li ol li ol {
+	font-size: 1.28em; /* フォントサイズ調整 */
+}
+
+/* 第6レベル */
+nav ol li ol li ol li ol li ol li ol li {
+	margin-top: 0.41em;
+	margin-bottom: 0.41em;
+	font-size: 0.78em;
+	line-height: 1.6;
+}
+
+
+/* 折り返し用 */
+nav ol li {
+	padding-left: 1em;
+	text-indent: -1em;
+}
+nav ol li ol {
+ 	margin-top: 0;
+ 	margin-bottom: 0;
+	padding-left: 0;
+}
+
+/*----------------------------------------------------------
+ページ枠
+----------------------------------------------------------*/
+div.page_box {
+	display: table;
+	width: 100%;
+	height: 100%;
+	word-break: break-all;
+	-epub-word-break: break-all;
+}
+div.page_container {
+	display: table-cell;
+	vertical-align: middle;
+}
+

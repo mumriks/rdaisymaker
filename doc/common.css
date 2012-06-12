@@ -78,7 +78,7 @@
 /*             elements without display properties               */
 /* ------------------------------------------------------------- */
 
-dtbook {
+dtbook, html {
   display:block;
   width: 100%;
 }
@@ -93,43 +93,43 @@ head, head * {
 /*                  base properties of whole doc                 */
 /* ------------------------------------------------------------- */
 
-book {
+book, body {
   display: block;
   background-color: rgb(255,255,255);
   color: rgb(0,0,0);
   font-family: arial, verdana, sans-serif;
-  line-height: 1.5em;
-  margin-top: 4em;
-  margin-bottom: 2em;
-  margin-left: 6em;
-  margin-right: 6em;
+  line-height: 1.8em;
+  margin-top: 2em;
+  margin-bottom: 1em;
+  margin-left: 3em;
+  margin-right: 3em;
 }
 
 /* ------------------------------------------------------------- */
 /*                          frontmatter                          */
 /* ------------------------------------------------------------- */
 
-frontmatter {
+frontmatter, .frontmatter {
   display: block;
   margin-top: 1em;
   margin-bottom: 1em;
 }
 
-doctitle, docauthor, covertitle {
+doctitle, docauthor, covertitle, .doctitle, .docauthor, .covertitle {
   display: block;
   font-weight: bold;
   text-align: center;
 }
 
-doctitle {
+doctitle, .doctitle {
   font-size: 2.0em;
 }
 
-covertitle {
+covertitle, .covertitle {
   font-size: 1.5em;
 }
 
-docauthor {
+docauthor, .docauthor {
   font-style: italic;
   font-size: 1.5em;
 }
@@ -140,7 +140,7 @@ docauthor {
 /*                          bodymatter                           */
 /* ------------------------------------------------------------- */
 
-bodymatter {
+bodymatter, .bodymatter {
   display: block;
   margin-top: 1em;
   margin-bottom: 1em;
@@ -151,7 +151,7 @@ bodymatter {
 /*                          rearmatter                           */
 /* ------------------------------------------------------------- */
 
-rearmatter {
+rearmatter, .rearmatter {
   display: block;
   margin-top: 1em;
   margin-bottom: 1em;
@@ -232,6 +232,7 @@ div {
 p {
   display: block;
   margin-top: 0.7em;
+  text-indent: 1em;
 }
 
 prodnote {
@@ -284,23 +285,23 @@ line {
   margin: 0em;
 }
 
-poem {
+poem, .poem {
   display: block;
   margin-left: 3em;
   margin-top: 1em;
   margin-bottom: 1em;
 }
 
-linegroup {
+linegroup, .linegroup {
   display: block;  
   margin-top: 0.6em;
 }
 
-dateline, byline {
+dateline, byline, .dateline, .byline {
   display: block;  
 }
 
-epigraph {
+epigraph, .epigraph {
   display: block;  
   margin-top: 2em;
   margin-bottom: 2em;
@@ -445,47 +446,47 @@ li {
   list-style-position: outside;
 }
 
-lic {
+lic, span.lic {
   display: inline;
 }
 
-lic + lic {
+lic + lic, span.lic + span.lic {
   margin-left: 1em;	
 }
 
-list[type="ol"][enum="1"] {
+list[type="ol"][enum="1"], ol.one {
   list-style-type: decimal;
 }
 
-list[type="ol"][enum="a"] {
+list[type="ol"][enum="a"], ol.a {
   list-style-type: lower-alpha;
 }
 
-list[type="ol"][enum="A"] {
+list[type="ol"][enum="A"], ol.A {
   list-style-type: upper-alpha;
 }
 
-list[type="ol"][enum="i"] {
+list[type="ol"][enum="i"], ol.i {
   list-style-type: lower-roman;
 }
 
-list[type="ol"][enum="I"] {
+list[type="ol"][enum="I"], ol.I {
   list-style-type: upper-roman;
 }
 
-list[type="ul"] {
+list[type="ul"], ul {
   list-style-type: disc;
 }
 
-list[type="pl"] {
+list[type="pl"], ul.pl {
   list-style-type: none;	
 }
 
-list > li > list[type=ul] {
+list > li > list[type=ul], list > li > ul {
   list-style-type: circle;
 }
 
-list > li > list > li > list[type=ul] {
+list > li > list > li > list[type=ul], list > li > list > li > ul {
   list-style-type: square;
 }
 
@@ -583,11 +584,11 @@ th {
 /*                          images                               */
 /* ------------------------------------------------------------- */
 
-imggroup {
+imggroup, div.imagegroup {
   display: inline;
 }
 
-imggroup > caption {
+imggroup > caption, div.imggroup > div.caption {
   font-size: 80%;
 }
 
@@ -608,3 +609,63 @@ span[class="strikethrough"], span[class="double-strikethrough"] {
 span[class="small-caps"] {
   font-variant: small-caps;
 } 
+
+/* ===================== */
+/* 傍点、インデント追加  */
+/* ===================== */
+
+span[class=sesame_dot], .sesame_dot {
+    padding: 7px 0 0;
+    background: url(boten2.png) no-repeat;
+}
+
+[class="indent_1"] { margin-left: 1em }
+[class="indent_2"] { margin-left: 2em }
+[class="indent_3"] { margin-left: 3em }
+[class="indent_4"] { margin-left: 4em }
+[class="indent_5"] { margin-left: 5em }
+[class="indent_6"] { margin-left: 6em }
+[class="indent_7"] { margin-left: 7em }
+[class="indent_8"] { margin-left: 8em }
+[class="indent_9"] { margin-left: 9em }
+[class="indent_x"] { text-align: right }
+[class="indent_x1"] {
+  text-align: right;
+  margin-right: 1em;
+}
+[class="indent_x2"] {
+  text-align: right;
+  margin-right: 2em;
+}
+[class="indent_x3"] {
+  text-align: right;
+  margin-right: 3em;
+}
+[class="indent_x4"] {
+  text-align: right;
+  margin-right: 4em;
+}
+[class="indent_x5"] {
+  text-align: right;
+  margin-right: 5em;
+}
+[class="indent_x6"] {
+  text-align: right;
+  margin-right: 6em;
+}
+[class="indent_x7"] {
+  text-align: right;
+  margin-right: 7em;
+}
+[class="indent_x8"] {
+  text-align: right;
+  margin-right: 8em;
+}
+[class="indent_x9"] {
+  text-align: right;
+  margin-right: 9em;
+}
+[class="indent_-1"] {
+  margin-left: 3em;
+  text-indent: -1em;
+}

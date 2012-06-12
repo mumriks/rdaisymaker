@@ -10,13 +10,14 @@ require 'fileutils'
 require 'optparse'
 require 'tempfile'
 
-VERSION = "0.2.1"
+VERSION = "0.2.2"
 DAISYM = "R DAISY Maker ver #{VERSION}"
 DNAME = "rdm"
 PLEXTALK = "PLEXTALK DAISY Producer ver 0.2.4.0"
 PNAME = "ptk"
 @params = {"ptk" => DNAME, "generator" => DAISYM,
-           "type" => nil, "sesame" => nil, "pagedirection" => nil}
+           "type" => nil, "pagedirection" => nil,
+           "add_yomi" => false, "datevih" => true}
 
 parser = OptionParser.new
 scriptfile = File.basename($0)
@@ -39,14 +40,13 @@ parser.on('--textdaisy4-rtl', 'build textDAISY4 epub3(縦組)'){
    @params["type"] = 'textDAISY4'
    @params["pagedirection"] = "rtl"
 }
-parser.on('--bb', '傍点を太字で代用（daisy3のみ）'){
-   @params["sesame"] = 'bold'
+parser.on('--textdaisy4-rtl-date', '  epub3(縦組) 日付縦中横個別処理'){
+   @params["type"] = 'textDAISY4'
+   @params["pagedirection"] = "rtl"
+   @params["datevih"] = false
 }
-parser.on('--bu', '傍点を下線で代用（daisy3のみ）'){
-   @params["sesame"] = 'underline'
-}
-parser.on('--bi', '傍点を斜体で代用（daisy3のみ）'){
-   @params["sesame"] = 'italic'
+parser.on('--add_yomi', '漢字に読み情報があれば設定(daisy3のみ)'){
+   @params["add_yomi"] = true
 }
 parser.on('-v', '--version', 'バージョン情報を表示') {
    puts "#{DAISYM}"
@@ -206,6 +206,9 @@ def read_type(phr, f)
       p = Indent.new("end")
       @sect.add_phrase(p)
       @indtend += 1
+   when /\Alist\z/
+      phr, args = read_phrase(phr, f)
+      list_flat(phr, args)
    else
       mes = "未定義のタグです : //#{type}\n#{File.basename(f)} line:#{@lineno}\n#{phr}"
       print_error(mes)
@@ -254,6 +257,7 @@ def daisy3noteref(phrase, args)
    if @daisy.kind_of?(Daisy3)
       reftag = %Q[<fnr id="" idref="#">#{noteref}</fnr>]
    elsif @daisy.kind_of?(Daisy4)
+      noteref = @daisy.tag_vih(noteref) if /\A\d+\z/ =~ noteref
       reftag = %Q[<a rel="note" epub:type="" id="" href="#">#{noteref}</a>]
    end
 #   phr = phrase.sub(/@<fn>{[^{]+}/, %Q[<fnr id="" idref="#">#{noteref}</fnr>])
@@ -580,9 +584,11 @@ def note_flat(phr, args, type)
 # Quote 変更ここから
       elsif 'Quote' == type
          q = Quote.new
+         q.border = args[0] if /\Ab/ =~ args[0]
          lines = str.split(/\n/)
          lines.each {|line|
-            q.add_lines(line)
+#            q.add_lines(line)
+            q.add_lines(@daisy.compile_inline_tag(line))
          }
          @sect.add_phrase(q)
 # Quote 変更ここまで
@@ -611,6 +617,88 @@ def sent_flat(phr, tag)
          s = Sent.new(sent)
          @sect.add_phrase(s)
       end
+   }
+end
+
+def list_flat(phr, args)
+   type = nil; enum = nil
+   if 0 < args.size
+      if /\A([1aAiI])\z/ =~ args[0]
+         enum = $1; type = 'ol'
+      end
+   end
+   if /^:[\s　]+/ =~ phr[0]
+      type = 'dl'; enum = ':'
+   elsif type.nil?
+      type = 'ul'; enum = '*'
+   end
+   list_num = phr.size - 1
+   dltag = ''
+   phr.each_with_index {|p, i|
+      if '' == p
+         mes = "リストデータがありません。
+#{File.basename(@f)} line:#{@lineno}
+#{p}\n"
+         print_error(mes)
+      end
+      case i
+      when 0
+         if 'dl' == type
+            if /\A:\s+/ =~ p
+               dltag = 'dt'
+            else
+               mes = "用語リストのタイトルがありません。
+#{File.basename(@f)} line:#{@lineno}
+#{p}\n"
+               print_error(mes)
+            end
+         end
+         @p = List.new(p)
+#         @p.set_type(dltag, type, enum)
+         @p.args = "begin"
+      when list_num
+         if 'dl' == type
+            if /\A:\s+/ =~ p
+               mes = "用語リストのデータがありません。
+#{File.basename(@f)} line:#{@lineno}
+#{p}\n"
+               print_error(mes)
+            else
+               if /dd/ =~ dltag
+                  dltag = dltag.succ
+               else
+                  dltag = 'dd0'
+               end
+            end
+         end
+         @p = List.new(p)
+#         @p.set_type(dltag, type, enum)
+         @p.args = "end"
+      else
+         if 'dl' == type
+            if /\A:\s+/ =~ p
+               if /dd/ =~ dltag
+                  dltag = 'dt'
+               else
+                  mes = "用語リストのデータがありません。
+#{File.basename(@f)} line:#{@lineno}
+#{p}\n"
+                  print_error(mes)
+               end
+            else
+               if /dd/ =~ dltag
+                  dltag = dltag.succ
+               else
+                  dltag = 'dd0'
+               end
+            end
+         end
+         @p = List.new(p)
+#         @p.set_type(dltag, type, enum)
+      end
+      @p.set_type(dltag, type, enum)
+      @p.cut_headmark
+      @sect.add_phrase(@p)
    }
 end
 
@@ -814,9 +902,10 @@ def main
       case values["multimediaType"]
       when /textNCX/
          @daisy = TEXTDaisy.new(values)
-         @daisy.sesame = @params["sesame"]
+         @daisy.add_yomi = @params["add_yomi"]
       when /textDAISY4/
          @daisy = TEXTDaisy4.new(values)
+         @daisy.datevih = @params["datevih"]
       when nil
          mes = "処理を終了します。
 yaml ファイルもしくは、オプションで図書タイプを指定してください。"

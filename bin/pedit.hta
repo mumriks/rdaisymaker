@@ -528,7 +528,7 @@ def tagoff(select)
    else
       t.sub!(/=+\s+/, "")
       t.sub!(/\n[-\|\+]+/, "")
-      t.gsub!(%r!//[a-z][a-z]+.*(?:\n|\z)!, "")
+      t.gsub!(%r!\A//[a-z][a-z]+.*(?:\n|\z)!, "")
       t.gsub!(%r!\n//}\z!, "")
    end
    select.text = t

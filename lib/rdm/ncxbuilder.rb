@@ -256,6 +256,7 @@ EOT
    def build_nav_pre
       @nf.puts <<EOT
       <nav epub:type="toc" id="toc">
+         <h1>目次</h1>
 EOT
    end
 

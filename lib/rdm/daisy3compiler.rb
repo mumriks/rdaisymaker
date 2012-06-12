@@ -18,6 +18,7 @@ class TEXTDaisy
   <head>
     <meta name="dc:Title" content="#{@meta.title}" />
     <meta name="dtb:uid" content="#{@meta.iUid}" />
+    <link rel="stylesheet" type="text/css" href="#{@bookname}.css" />
   </head>
   <book>
     <bodymatter>
@@ -42,9 +43,6 @@ EOT
 EOT
    end
 
-   def compile_indent(args)
-   end
-
    def compile_headline(phr)
       befour_level = @level
       @level = phr.args
@@ -58,8 +56,13 @@ EOT
             @xfile.puts(indent(%Q[</level#{num}>], @xindent))
          }
       end
+      phr.phrase.sub!(/^[\s　]+/, "")
       @xfile.puts(indent(%Q[<level#{@level}>], @xindent))
-      @xfile.puts(indent(%Q[<h#{phr.args}>], @xindent + 2))
+      if phr.indent
+         @xfile.puts(indent(%Q[<h#{phr.args} class="indent_#{phr.indent}">], @xindent + 2))
+      else
+         @xfile.puts(indent(%Q[<h#{phr.args}>], @xindent + 2))
+      end
       if /\A</ =~ phr.phrase
          @xfile.puts(indent(%Q[<sent id="#{idstr}" smilref="#{smilstr}">], @xindent + 4))
          @xfile.puts(indent(%Q[#{phr.phrase}], @xindent + 6))
@@ -68,7 +71,7 @@ EOT
          @xfile.puts(indent(%Q[<sent id="#{idstr}" smilref="#{smilstr}">#{phr.phrase}</sent>], @xindent + 4))
       end
       @xfile.puts(indent(%Q[</h#{phr.args}>], @xindent + 2))
-      @xindent = @xindent + 2
+#      @xindent = @xindent + 2
    end
 
    def compile_annoref(phr)
@@ -148,6 +151,7 @@ EOT
    end
 
    def compile_text(phr)
+      phr.phrase.sub!(/^[\s　]+/, "") if @paragraph_print
       check_paragraph()
       smilstr, idstr = compile_id(phr)
       phr.ncxsrc = smilstr
@@ -167,7 +171,15 @@ EOT
       @xfile.puts(indent(%Q[<blockquote id="#{idstr}" smilref="#{smilstr}">], @xindent))
 # Quote 変更
       phr.lines.each {|sent|
-         @xfile.puts(indent(%Q[<p>#{sent.phrase}</p>], @xindent + 2))
+         sent.phrase.sub!(/^[\s　]+/, "")
+         if /^<span class="(x?[1-9])">/ =~ sent.phrase
+            num = $1
+            str = sent.phrase.sub(/<span class=".+">/, "")
+            str.sub!("</span>", "")
+            @xfile.puts(indent(%Q[<p class="indent_#{num}">#{str}</p>], @xindent + 2))
+         else
+            @xfile.puts(indent(%Q[<p>#{sent.phrase}</p>], @xindent + 2))
+         end
       }
 #      phr.phrase.each_line {|p|
 #         xmlfile.puts(indent(%Q[#{p}], @xindent + 2))
@@ -178,6 +190,7 @@ EOT
    def compile_pagenum(phr)
       smilstr, idstr = compile_id(phr)
       phr.ncxsrc = smilstr
+      @xfile.puts(indent("<br />", @xindent)) unless @paragraph_print
       if /\A</ =~ phr.phrase
          @xfile.puts(indent(%Q[<pagenum id="#{idstr}" smilref="#{smilstr}" page="#{phr.namedowncase}">], @xindent))
          @xfile.puts(indent(%Q[#{phr.phrase}], @xindent + 2))
@@ -185,6 +198,7 @@ EOT
       else
          @xfile.puts(indent(%Q[<pagenum id="#{idstr}" smilref="#{smilstr}" page="#{phr.namedowncase}">#{phr.phrase}</pagenum>], @xindent))
       end
+      @xfile.puts(indent("<br />", @xindent)) unless @paragraph_print
    end
 
    def compile_table(phr)
@@ -247,6 +261,47 @@ EOT
          @xindent = @xindent - 2
          @xfile.puts(indent(%Q[</imggroup>], @xindent))
       end
+   end
+
+   def compile_list(phr)
+      smilstr, idstr = compile_id(phr)
+      phr.ncxsrc = smilstr
+      if "begin" == phr.args
+         if '*' == phr.enum
+            @xfile.puts(indent(%Q[<list type="#{phr.type}">], @xindent))
+         elsif ':' == phr.enum
+            @xfile.puts(indent("<dl>", @xindent))
+         else
+            @xfile.puts(indent(%Q[<list type="#{phr.type}" enum="#{phr.enum}">], @xindent))
+         end
+      end
+      if '' == phr.dl
+         @xfile.puts(indent("<li>", @xindent + 2))
+         @xfile.puts(indent(%Q[<sent id="#{idstr}" smilref="#{smilstr}">#{phr.phrase}</sent>], @xindent + 4))
+         @xfile.puts(indent("</li>", @xindent + 2))
+      elsif 'dt' == phr.dl
+         if phr.args.nil? #phr.enum.nil?
+            @xfile.puts(indent("</dd>", @xindent + 2))
+         end
+         @xfile.puts(indent("<dt>", @xindent + 2))
+         @xfile.puts(indent(%Q[<sent id="#{idstr}" smilref="#{smilstr}">#{phr.phrase}</sent>], @xindent + 4))
+      elsif 'dd0' == phr.dl
+         @xfile.puts(indent("</dt>", @xindent + 2))
+         @xfile.puts(indent("<dd>", @xindent + 2))
+         @xfile.puts(indent(%Q[<sent id="#{idstr}" smilref="#{smilstr}">#{phr.phrase}</sent>], @xindent + 4))
+      elsif /dd[1-9]+/ =~ phr.dl
+         @xfile.puts(indent("<br />", @xindent + 2))
+         @xfile.puts(indent(%Q[<sent id="#{idstr}" smilref="#{smilstr}">#{phr.phrase}</sent>], @xindent + 4))
+      end
+      if "end" == phr.args
+         if 'dl' == phr.type
+            @xfile.puts(indent("</dd>", @xindent + 2))
+            @xfile.puts(indent("</dl>", @xindent))
+         else
+            @xfile.puts(indent("</list>", @xindent))
+         end
+      end
+
    end
 
 
@@ -382,10 +437,31 @@ EOT
          print_error(errmes)
       end
       unless /#{KANJI}+/ =~ k
-         errmes = "ルビタグの漢字部分が違っているようです : #{rubytag}"
-         print_error(errmes)
+#         errmes = "ルビタグの漢字部分が違っているようです : #{rubytag}"
+#         print_error(errmes)
+         mes = "[注意] 漢字以外が含まれているようです : #{rubytag}"
+         puts mes
       end
+      unless @add_yomi
+#         return tag = k if /#{KATA}+/ =~ r
+         return tag = k if /\A[yY]/ =~ r
+      end
+      r = r.sub(/\A[yY]/, '')
       tag = %Q!<span class="ruby">#{k}<span class="rp">（</span><span class="rt">#{r}</span><span class="rp">）</span></span>!
    end
 
+   def tag_vih(args)
+      args
+   end
+   def tag_date(args)
+      args
+   end
+   def tag_indent(args)
+      if /^(x?[1-9]?|[1-9]),(.+)$/ =~ args
+         num = $1
+         sent = $2.sub(/^[\s　]+/, "")
+         return %Q[<span class="#{num}">#{sent}</span>]
+      end
+      return "err"
+   end
 end
