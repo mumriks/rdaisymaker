@@ -11,7 +11,7 @@ class TEXTDaisy < Daisy3
       @meta.format = "ANSI/NISO Z39.86-2005"
       @sesame = false
    end
-   attr_accessor :sesame, :add_yomi
+   attr_accessor :sesame, :yomi
 
    def build_cover(file)
       return

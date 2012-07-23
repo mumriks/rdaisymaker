@@ -17,7 +17,7 @@ PLEXTALK = "PLEXTALK DAISY Producer ver 0.2.4.0"
 PNAME = "ptk"
 @params = {"ptk" => DNAME, "generator" => DAISYM,
            "type" => nil, "pagedirection" => nil,
-           "add_yomi" => false, "datevih" => true}
+           "yomi" => false, "datevih" => true}
 
 parser = OptionParser.new
 scriptfile = File.basename($0)
@@ -45,8 +45,8 @@ parser.on('--textdaisy4-rtl-date', '  epub3(縦組) 日付縦中横個別処理'
    @params["pagedirection"] = "rtl"
    @params["datevih"] = false
 }
-parser.on('--add_yomi', '漢字に読み情報があれば設定(daisy3のみ)'){
-   @params["add_yomi"] = true
+parser.on('--yomi', '漢字に読み情報があれば設定(daisy3のみ)'){
+   @params["yomi"] = true
 }
 parser.on('-v', '--version', 'バージョン情報を表示') {
    puts "#{DAISYM}"
@@ -902,7 +902,7 @@ def main
       case values["multimediaType"]
       when /textNCX/
          @daisy = TEXTDaisy.new(values)
-         @daisy.add_yomi = @params["add_yomi"]
+         @daisy.yomi = @params["yomi"]
       when /textDAISY4/
          @daisy = TEXTDaisy4.new(values)
          @daisy.datevih = @params["datevih"]

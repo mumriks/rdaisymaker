@@ -63,8 +63,11 @@ class Daisy
             if self.kind_of?(Daisy3)
                @sesame = true
                tag = ""
+ruby = false
                args.scan(/./).each {|s|
-                  tag += tag_sesamedot(s)
+ruby = true if "《" == s
+                  tag += tag_sesamedot(s) unless ruby
+ruby = false if "》" == s
                }
             else
                tag = tag_sesamedot(args)

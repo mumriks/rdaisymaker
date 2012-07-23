@@ -40,7 +40,7 @@ end
 
 @params = {"aozora" => nil, "paging" => nil, "split" => true,
            "ruby" => nil, "log" => nil, "cuttag" => nil, "cutpage" => nil,
-           "poem" => nil, "ruby_cache" => true}
+           "poem" => nil, "ruby_cache" => false}
 parser = OptionParser.new
 scriptfile = File.basename($0)
 parser.banner = "Usage: ruby #{scriptfile} [options]"
@@ -74,10 +74,10 @@ parser.on('-r', '--rubya', 'ルビを振る（青空文庫 形式）') {
       print_("この環境ではルビは使えません")
    end
 }
-parser.on('--rubyanc', 'ルビを振る（キャッシュなし）'){
+parser.on('--rubyac', 'ルビ（青空）（キャッシュあり）'){
    if @mecabso
       @params["ruby"] = "aozora"
-      @params["ruby_cache"] = false
+      @params["ruby_cache"] = true
    else
       print_("この環境ではルビは使えません")
    end
@@ -89,10 +89,10 @@ parser.on('--rubyr', 'ルビを振る（ReVIEW 形式）'){
       print_("この環境ではルビは使えません")
    end
 }
-parser.on('--rubyrnc', 'ルビを振る（キャッシュなし）'){
+parser.on('--rubyrc', 'ルビ（ReVIEW）（キャッシュあり）'){
    if @mecabso
       @params["ruby"] = "review"
-      @params["ruby_cache"] = false
+      @params["ruby_cache"] = true
    else
       print_("この環境ではルビは使えません")
    end
@@ -637,6 +637,7 @@ def startMecab
    elsif @params["ruby"]
       @model = MeCab::Model.new
    end
+   puts "Use MeCab #{MeCab::VERSION}"
 end
 def wakati(line)
    lineArray, noruby = check_ruby(line)

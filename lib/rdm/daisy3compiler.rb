@@ -71,7 +71,7 @@ EOT
          @xfile.puts(indent(%Q[<sent id="#{idstr}" smilref="#{smilstr}">#{phr.phrase}</sent>], @xindent + 4))
       end
       @xfile.puts(indent(%Q[</h#{phr.args}>], @xindent + 2))
-#      @xindent = @xindent + 2
+      @xindent = @xindent + 2
    end
 
    def compile_annoref(phr)
@@ -442,7 +442,7 @@ EOT
          mes = "[注意] 漢字以外が含まれているようです : #{rubytag}"
          puts mes
       end
-      unless @add_yomi
+      unless @yomi
 #         return tag = k if /#{KATA}+/ =~ r
          return tag = k if /\A[yY]/ =~ r
       end
