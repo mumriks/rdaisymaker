@@ -10,7 +10,7 @@ require 'fileutils'
 require 'optparse'
 require 'tempfile'
 
-VERSION = "0.2.2"
+VERSION = "0.2.3"
 DAISYM = "R DAISY Maker ver #{VERSION}"
 DNAME = "rdm"
 PLEXTALK = "PLEXTALK DAISY Producer ver 0.2.4.0"
@@ -219,13 +219,7 @@ def read_reftype(phrase)
    @refmes = "引数の文法が違うようです : #{phrase}\n#{File.basename(@f)} line:#{@lineno}"
    if /@<fn>{([^{]+?)}/ =~ phrase
       args = $1
-      daisy3noteref(phrase, args) #if @daisy.kind_of?(Daisy3)
-#      daisy4noteref(phrase, args) if @daisy.kind_of?(Daisy4)
-##      print_error(@refmes)  unless /\A[a-zA-Z0-9_-]+\z/ =~ $1
-##      phr = phrase.sub(/@<fn>{[^{]+}/, '')
-##      @daisy.skippable.noteref = "false"
-##      p = Noteref.new(phr, args)
-##      @skip_list[args] << Skip.new(@f, @lineno, p)
+      daisy3noteref(phrase, args)
    elsif @daisy.instance_of?(TEXTDaisy)
       mes = "使用できないタグです : #{phrase}\n#{File.basename(@f)} line:#{@lineno}"
       print_error(mes)
@@ -260,7 +254,6 @@ def daisy3noteref(phrase, args)
       noteref = @daisy.tag_vih(noteref) if /\A\d+\z/ =~ noteref
       reftag = %Q[<a rel="note" epub:type="" id="" href="#">#{noteref}</a>]
    end
-#   phr = phrase.sub(/@<fn>{[^{]+}/, %Q[<fnr id="" idref="#">#{noteref}</fnr>])
    phr = phrase.sub(/@<fn>{[^{]+}/, reftag)
    @daisy.compile_inline_tag(phr)
    @daisy.skippable.noteref = "false"
@@ -281,28 +274,6 @@ def daisy4noteref(phrase, args)
       @ref[1] = true
    end
    print_error(@refmes)  unless /\A[a-zA-Z0-9_-]+\z/ =~ args
-=begin
-   m = /@<fn>{[^{]+}/.match(phrase)
-   if m.pre_match
-      str = m.pre_match
-      @daisy.compile_inline_tag(str)
-      p = Sent.new(str)
-      @sect.add_phrase(p)
-   end
-   p = Noteref.new(noteref, args)
-   p.sectnum = @sectcount
-   @sect.add_phrase(p)
-   @skip_list[args] << Skip.new(@f, @lineno, p)
-   @daisy.skippable.noteref = "false"
-   if m.post_match
-      str = m.post_match
-      unless /^$/ =~ str
-         @daisy.compile_inline_tag(str)
-         p = Sent.new(str)
-         @sect.add_phrase(p)
-      end
-   end
-=end
    phr = phrase.sub(/@<fn>{[^{]+}/, %Q[<a rel="note" epub:type="" id="" href="#">#{noteref}</a>])
    @daisy.compile_inline_tag(phr)
    @daisy.skippable.noteref = "false"
@@ -465,8 +436,7 @@ end
 def check_image(phr, args)
    em = {"errmes1" => "画像ファイルが指定されていません '//image[#{args}]{'",
     "errmes2" => "そのファイルは見つかりません : ",
-    "errmes3" => "サポートされていない画像タイプです : ",
-    "errmes4" => " は画像サイズが大きすぎます Max:#{Daisy::IMGWIDTH}*#{Daisy::IMGHEIGHT} : "}
+    "errmes3" => "サポートされていない画像タイプです : "}
    where = "\n#{File.basename(@f)} line:#{@lineno}"
    @imgcount = 0
    @imgids = ""
@@ -496,16 +466,21 @@ def check_image(phr, args)
       else
          unless File.exist?(p)
             if @o.instance_of?(Image)
-               @o.caption = p
+               @o.caption = p.gsub(/《[^》]+》/, "")
             end
             next
          end
          @imgcount += 1
          @imgids = @imgids + "#{args[0]}-#{@imgcount} "
-         result = @daisy.check_imagefile(p)
-         print_error(em["#{result}"] + p + where) if /errmes[1-3]/ =~ result
-         print_error("'#{p}'" + em["#{result}"] + where) if /errmes4/ =~ result
-         @o = Image.new(result, "#{args[0]}-#{@imgcount}")
+         mes, image = @daisy.check_imagefile(p)
+         if  /errmes[1-3]/ =~ mes
+            print_error(em["#{mes}"] + p + where)
+         elsif 'errmes4' == mes
+            @big_image << p
+            @o = Image.new(p, "#{args[0]}-#{@imgcount}")
+         else
+            @o = Image.new(image, "#{args[0]}-#{@imgcount}")
+         end
          width, height = @daisy.get_image_size(p)
          @o.width = width; @o.height = height
          @tagids[@o.args] << Image.new("#{File.basename(@f)} - line:#{@lineno}", @o.args)
@@ -524,23 +499,31 @@ def check_image(phr, args)
          obj.ref = @imgids.rstrip
          @sect.add_phrase(obj)
          if @imgcount == 0 and args[1]
-#            c = Caption.new(args[1])
-#            c.ref = @imgids.rstrip
-#            @sect.add_phrase(c)
-            @caption = Caption.new(args[1])  ## <<120401
-            @caption.ref = @imgids.rstrip    ## <<120401
+            @caption = Caption.new(args[1])
+            @caption.ref = @imgids.rstrip
          end
       else
          @sect.add_phrase(obj)
       end
    }
-## >>120402
    if @caption
-      @sect.add_phrase(@caption)  ## <<120401
+      @sect.add_phrase(@caption)
       @caption = nil
    end
-## <<120402
    image_group_set("finish", args[0]) if @group.size > 1 or args[1]
+end
+
+def check_image_size
+   unless 0 == @big_image.size
+      puts "次の画像は推奨サイズ(#{Daisy::IMGWIDTH}x#{Daisy::IMGHEIGHT})よりも大きいです。"
+      @big_image.uniq.each {|img|
+         width, height = @daisy.get_image_size(img)
+         puts "#{img} (#{width} x #{height})"
+      }
+      if @daisy.kind_of?(Daisy3)
+         print_error("図書作成を終了します。")
+      end
+   end
 end
 
 def note_flat(phr, args, type)
@@ -567,11 +550,8 @@ def note_flat(phr, args, type)
          @skip_list[args[0]] << Skip.new(@f, @lineno, pp) if notes.nil?
          notes << pp unless notes.nil?
       }
-      if 'Sidebar' == type #or 'Quote' == type
+      if 'Sidebar' == type
          str.chomp!
-#         str.sub!(/\n/, "</p>\n<p>")
-#         strs = "<p>" + str + "</p>"
-#         pp = eval ("#{type}.new(strs, args)")
          pp = eval ("#{type}.new(str, args)")
          @sect.add_phrase(pp)
          if pp.instance_of?(Sidebar)
@@ -581,17 +561,14 @@ def note_flat(phr, args, type)
                print_error(mes)
             end
          end
-# Quote 変更ここから
       elsif 'Quote' == type
          q = Quote.new
          q.border = args[0] if /\Ab/ =~ args[0]
          lines = str.split(/\n/)
          lines.each {|line|
-#            q.add_lines(line)
             q.add_lines(@daisy.compile_inline_tag(line))
          }
          @sect.add_phrase(q)
-# Quote 変更ここまで
       end
       unless notes.nil?
          ns = eval ("#{type}s.new(str, args)")
@@ -654,7 +631,6 @@ def list_flat(phr, args)
             end
          end
          @p = List.new(p)
-#         @p.set_type(dltag, type, enum)
          @p.args = "begin"
       when list_num
          if 'dl' == type
@@ -672,7 +648,6 @@ def list_flat(phr, args)
             end
          end
          @p = List.new(p)
-#         @p.set_type(dltag, type, enum)
          @p.args = "end"
       else
          if 'dl' == type
@@ -694,7 +669,6 @@ def list_flat(phr, args)
             end
          end
          @p = List.new(p)
-#         @p.set_type(dltag, type, enum)
       end
       @p.set_type(dltag, type, enum)
       @p.cut_headmark
@@ -923,6 +897,7 @@ yaml ファイルもしくは、オプションで図書タイプを指定して
       @skip_list = s
       @noterefNum = 0
       @ref = Array.new(2)
+      @big_image = []
       if File.exists?("SECTIONS")
          File.open("SECTIONS") {|section|
             section.each_line {|file|
@@ -952,6 +927,7 @@ file: #{file.chomp} begin:#{@indtbegin} end:#{@indtend}\n"
          print_error(mes)
       end
       check_same_args?
+      check_image_size()
       skippable_check()
       set_note_ref_chain()
       set_readid()
@@ -960,18 +936,15 @@ file: #{file.chomp} begin:#{@indtbegin} end:#{@indtend}\n"
       @daisy.build_opf
       @daisy.copy_files
       FileUtils.rm_r(temp) if debug.nil?
-#=begin
    rescue => err
       STDERR.puts err
       FileUtils.rm_r(temp) if debug.nil? and File.exist?(temp)
       FileUtils.rm_r(bookname) if debug.nil? and File.exist?(bookname)
    end
-#=end
 end
 
 def print_error(errmes)
    raise errmes.encode("SJIS")
-#   STDERR.puts errmes
    exit 1
 end
 

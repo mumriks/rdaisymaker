@@ -50,10 +50,10 @@ class TEXTDaisy < Daisy3
    end
 
    def check_imagefile(image)
-      return 'errmes2' unless File.exist?(image)
+      return 'errmes2', image unless File.exist?(image)
       extname = File.extname(image)
       basename = File.basename(image, ".*")
-      return 'errmes3' unless /\.jpe*g|\.png/ =~ extname
+      return 'errmes3', image unless /\.jpe*g|\.png/ =~ extname
       extname = '.jpg' if '.jpeg' == extname
       if /[^A-Za-z0-9]+/ =~ basename
          bn = basename.gsub(/[^A-Za-z0-9]+/, '')
@@ -65,10 +65,10 @@ class TEXTDaisy < Daisy3
          puts "'#{image}' のファイル名を '#{basename}#{extname}' に変更しました。"
       end
       width, height = get_image_size(image)
-      return 'errmes4' unless IMGHEIGHT >= height
-      return 'errmes4' unless IMGWIDTH >= width
       copy_image(image, "#{basename}#{extname}")
-      return "#{basename}#{extname}"
+      return 'errmes4', "#{basename}#{extname}" unless IMGHEIGHT >= height
+      return 'errmes4', "#{basename}#{extname}" unless IMGWIDTH >= width
+      return nil, "#{basename}#{extname}"
    end
 
    private

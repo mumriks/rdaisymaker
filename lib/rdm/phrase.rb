@@ -307,7 +307,7 @@ class Prodnote < NoteGroup
    def initialize(phrase, args = nil)
       super
    end
-   attr_accessor :render, :ncxsrc, :group, :ref
+   attr_accessor :render, :ncxsrc, :group, :ref, :sectnum
 
    def valid_render?
       case @args
@@ -373,10 +373,7 @@ class Quote < PhraseTag
       p = Sent.new(phrase)
       @lines << p
    end
-   attr_accessor :lines, :border#, :totalid, :readid
-#   def initialize(phrase, args = nil)
-#      super
-#   end
+   attr_accessor :lines, :border
    attr_accessor :ncxsrc
 
    def compile_xml(daisy)

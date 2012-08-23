@@ -7,13 +7,11 @@ class Daisy
    @normal_print = false
    @indent = 0
 
-   ZENKIGOU = Regexp.new("[！”＃＄％＆’（）＝～｜￥「」＜＞｛｝【】『』〔〕≪≫・；：＋＊－／＠‘　、。]")
+   ZENKIGOU = Regexp.new("[！”＃＄％＆’※（）＝～｜￥「」＜＞｛｝【】『』〔〕≪≫〈〉［］―…・；：＋＊－／＠‘　、。]")
    ZENEISU = Regexp.new("[０-９ａ-ｚＡ-Ｚ]")
-#   KANA = Regexp.new("[ぁ-ゖァ-ヺー]")
    HIRA = Regexp.new("[ぁ-ゖ]")
    KATA = Regexp.new("[ァ-ヺー]")
    KANA = Regexp.new("[#{HIRA}#{KATA}]")
-#   KANJI = Regexp.new("[^#{KANA}#{ZENEISU}#{ZENKIGOU}!-~]")
    KANJI = Regexp.new("[^#{KANA}#{ZENEISU}#{ZENKIGOU}!-~\s]")
 
    def zerosuplement(fig, place)
@@ -63,11 +61,11 @@ class Daisy
             if self.kind_of?(Daisy3)
                @sesame = true
                tag = ""
-ruby = false
+               ruby = false
                args.scan(/./).each {|s|
-ruby = true if "《" == s
+                  ruby = true if "《" == s
                   tag += tag_sesamedot(s) unless ruby
-ruby = false if "》" == s
+                  ruby = false if "》" == s
                }
             else
                tag = tag_sesamedot(args)
@@ -116,7 +114,7 @@ ruby = false if "》" == s
    end
 
    def compile_indent(args)
-      if /\Ax?[1-9]/ =~ args
+      if /\Ax[1-9]?|\A[1-9]/ =~ args
          @xfile.puts(indent(%Q[<div class="indent_#{args}">], @xindent))
          @xindent += 2
       elsif /-/ =~ args
@@ -189,7 +187,6 @@ ruby = false if "》" == s
 
    def print_error(errmes)
       raise errmes
-#      STDERR.puts errmes
       exit 1
    end
 

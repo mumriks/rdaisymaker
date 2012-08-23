@@ -4,7 +4,7 @@
 # Copyright (c) 2011 Kishida Atsushi
 #
 
-VERSION = '0.3.3'
+VERSION = '0.3.5'
 BINDIR = File.dirname(File.expand_path(__FILE__))
 $LOAD_PATH << File.join(BINDIR, "../lib")
 
@@ -335,11 +335,6 @@ def modify_(line, reg, modify)
    end
 end
 
-#def modify1(line, reg, modify, str)
-#   line.sub!(/#{reg}/, "")
-#   line.sub!(str, "@<#{modify}>{#{str}}")
-#end
-
 def modify2(line, reg, modify, str)
    line.sub!(/#{reg}/, "@<#{modify}>{#{str}}")
 end
@@ -542,6 +537,7 @@ end
 
 @kanji = Daisy::KANJI
 @kana = Daisy::KANA
+@kata = Daisy::KATA
 @zenkigou = Daisy::ZENKIGOU
 @druby = {}
 
@@ -552,7 +548,7 @@ def check_ruby(line)
    noruby = []
    while m = /｜?(#{@kanji}*#{@kanji}+)《([^《]+)》#{@kana}*/.match(line2)
       @druby[$1] = $2 if @params["ruby_cache"]
-      rubyarea = $&; befourstr = m.pre_match #$`
+      rubyarea = $&; befourstr = m.pre_match
       unless befourstr == ""
          lineArray << befourstr
          noruby << num
@@ -574,11 +570,26 @@ def split_reading(str, reading)
    readHira = ExchangeKana.new(reading).to_hiragana
    while m = /#{@kana}+/.match(str)
       befour = m.pre_match;  after = m.post_match
-      r = /#{m}/.match(readHira)
-      if r
-         befour_hira = r.pre_match
-         after_hira = r.post_match
+      if /\A#{m}/ =~ str
+         if /#{@kata}+/ =~ "#{m}"
+            readHira = ExchangeKana.new(readHira).to_katakana
+         end
+         r = /#{m}/.match(readHira)
+         str.sub!(/#{m}/, "")
+         befour_hira = nil
+      elsif /#{m}\z/ =~ str
+         r = /#{m}\z/.match(readHira)
+         befour_hira = r.pre_match unless r.nil?
       else
+         if /\A(.).+\z/ =~ readHira
+            first_chr = $1
+            readHira.sub!(/\A./, "")
+         end
+         r = /#{m}/.match(readHira)
+         befour_hira = first_chr + r.pre_match unless r.nil?
+      end
+      after_hira = r.post_match unless r.nil?
+      unless r
          befour_hira = nil
          after_hira = nil
       end
@@ -753,7 +764,6 @@ def main
       puts "SECTIONS ファイルがありません。"
    end
    @logfile.close if @params["log"]
-#   @druby.each {|key, yomi| puts "#{key}, #{yomi}" }
 end
 
 main

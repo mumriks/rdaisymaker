@@ -14,11 +14,19 @@ class TEXTDaisy4 < Daisy4
    attr_accessor :datevih
 
    def build_cover(file)
+      em = {"errmes1" => "[cover]画像ファイルが指定されていません",
+            "errmes2" => "[cover]そのファイルは見つかりません : ",
+            "errmes3" => "[cover]サポートされていない画像タイプです : ",
+            "errmes4" => "[cover]画像が大きすぎるようです"}
+
       File.open("#{@c_path}/cover.xhtml", "w:UTF-8") {|xf|
          @xfile = xf
          File.open(file, "r:UTF-8") {|f|
             f.each_line {|line|
-               @cover_image = check_imagefile(line.chomp)
+               mes, @cover_image = check_imagefile(line.chomp)
+               if /errmes[1-3]/ =~ mes
+                  print_error("#{em[mes]} #{@cover_image}")
+               end
                File.rename("#{@i_path}/#{line.chomp}", "#{@i_path}/#{@cover_image}")
                cover_page(@cover_image)
                return
@@ -66,17 +74,16 @@ class TEXTDaisy4 < Daisy4
       FileUtils.cp(image, "#{@i_path}/#{dstname}")
    end
    def check_imagefile(image)
-      return 'errmes2' unless File.exist?(image)
+      return 'errmes2', image unless File.exist?(image)
       basename = File.basename(image, ".*")
       extname = File.extname(image)
-      return 'errmes3' unless /\.jpe*g|\.png/ =~ extname
+      return 'errmes3', image unless /\.jpe*g|\.png/ =~ extname
       extname = '.jpg' if '.jpeg' == extname
       width, height = get_image_size(image)
-      mes = "#{image} (#{width}*#{height}) はやや大きいですが処理します。"
-      puts mes unless IMGHEIGHT >= height
-      puts mes unless IMGWIDTH >= width
       copy_image(image, "#{basename}#{extname}")
-      return "#{basename}#{extname}"
+      return 'errmes4',image unless IMGHEIGHT >= height
+      return 'errmes4',image unless IMGWIDTH >= width
+      return nil, "#{basename}#{extname}"
    end
 
    private
@@ -180,19 +187,6 @@ class TEXTDaisy4 < Daisy4
             build_nav_section_root_post(indent - 3)
             build_nav_post()
          end
-=begin
-      @ncxnotetype.each {|t|
-         num = 1
-         build_ncx_navlist_pre(t)
-         @ncxnote.each {|n|
-            if t == n.namedowncase
-               build_ncx_navlist(n, num)
-               num += 1
-            end
-         }
-         build_ncx_navlist_post()
-      }
-=end
          build_nav_footer()
       }
    end
@@ -222,7 +216,6 @@ class TEXTDaisy4 < Daisy4
             build_manifest_item(type, "item_#{num}", xhtml)
             num = num + 1
          }
-#      spinenum = num
          sectnum.times {|s|
             smil = "Content/#{PTK}#{zerosuplement(s + 1,5)}.smil"
             type = "application/smil+xml"
@@ -246,11 +239,8 @@ class TEXTDaisy4 < Daisy4
          build_opf_manifest_post()
 
          build_opf_spine_pre()
-#         build_opf_spine("cover_page", "itemref_1")
-#         build_opf_spine("navi", "itemref_2")
          chapnum.times {|c|
             build_opf_spine("item_#{spinenum}", "itemref_#{c + 1}")
-#            build_opf_spine("item_#{spinenum}", "itemref_#{c + 3}")
             spinenum = spinenum + 1
          }
          build_opf_spine_post()
@@ -260,7 +250,6 @@ class TEXTDaisy4 < Daisy4
    end
 
    def build_other_file
-#      build_mimetype()
       build_container()
    end
    def build_mimetype
@@ -285,7 +274,6 @@ EOT
 
    def build_epub3
       basedir = Dir.pwd
-# ziprubytype
       Dir.chdir("#{@temp}/#{@bookname}")
       Zip::ZipOutputStream.open("#{@bookname}.epub") {|zos|
          zos.put_next_entry("mimetype","","", 0, 0)
@@ -306,13 +294,6 @@ EOT
       Dir.chdir(basedir)
       FileUtils.mv("#{@temp}/#{@bookname}/#{@bookname}.epub", "#{@bookname}.epub")
       epub3check()
-# ^^ ziprubytype
-
-#      Zip::Archive.open("#{@bookname}.epub") {|ar|
-#         ar.add_file("#{@temp}/#{@bookname}/mimetype")
-#         ar.add_dir("#{@m_path}")
-#         ar.add_dir("#{@p_path}")
-#      }
    end
    def epub3check
       if File.exist?(JAR)
@@ -321,6 +302,11 @@ EOT
       else
          puts "EPUB3 CHECK プログラムがみつかりません。"
       end
+   end
+
+   def print_error(errmes)
+      raise errmes.encode("SJIS")
+      exit 1
    end
 
 end

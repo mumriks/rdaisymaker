@@ -81,15 +81,6 @@ EOT
       check_paragraph()
       smilstr, idstr = compile_id(phr)
       phr.ncxsrc = smilstr
-=begin
-      if /\A</ =~ phr.phrase
-         @xfile.puts(indent(%Q[<#{phr.namedowncase} id="#{idstr}" smilref="#{smilstr}" idref="##{idstr.succ}">], @xindent))
-         @xfile.puts(indent(%Q[#{phr.phrase}], @xindent + 2))
-         @xfile.puts(indent(%Q[</#{phr.namedowncase}>], @xindent))
-      else
-         @xfile.puts(indent(%Q[<#{phr.namedowncase} id="#{idstr}" smilref="#{smilstr}" idref="##{idstr.succ}">#{phr.phrase}</#{phr.namedowncase}>], @xindent))
-      end
-=end
       phr.phrase.gsub!(/fnr/, phr.namedowncase)
       phr.phrase.sub!(/id=""/, %Q[id="#{idstr}-ref"])
       phr.phrase.sub!(/idref="#"/, %Q[idref="##{idstr.succ}"])
@@ -100,7 +91,6 @@ EOT
       else
          @xfile.puts(indent(%Q[<sent id="#{idstr}" smilref="#{smilstr}">#{phr.phrase}</sent>], @xindent))
       end
-#
       @normal_print = true
    end
 
@@ -109,12 +99,11 @@ EOT
       phr.ncxsrc = smilstr
       @xfile.puts(indent(%Q[<#{phr.namedowncase} id="#{idstr}" smilref="#{smilstr}">], @xindent))
       phrase = check_refstr(phr)
-      if /\A</ =~ phrase #phr.phrase
+      if /\A</ =~ phrase
          @xfile.puts(indent("<p>", @xindent + 2))
          @xfile.puts(indent("#{phrase}", @xindent + 4))
          @xfile.puts(indent("</p>", @xindent + 2))
       else
-#         @xfile.puts(indent(%Q[<p>#{phr.phrase}</p>], @xindent + 2))
          @xfile.puts(indent(%Q[<p>#{phrase}</p>], @xindent + 2))
       end
       @xfile.puts(indent(%Q[</#{phr.namedowncase}>], @xindent))
@@ -169,21 +158,19 @@ EOT
       smilstr, idstr = compile_id(phr)
       phr.ncxsrc = smilstr
       @xfile.puts(indent(%Q[<blockquote id="#{idstr}" smilref="#{smilstr}">], @xindent))
-# Quote 変更
       phr.lines.each {|sent|
          sent.phrase.sub!(/^[\s　]+/, "")
-         if /^<span class="(x?[1-9])">/ =~ sent.phrase
+         str = compile_daisy_ruby(sent.phrase)
+         str = compile_inline_tag(str)
+         if /^<span class="(x?[1-9])">/ =~ str
             num = $1
-            str = sent.phrase.sub(/<span class=".+">/, "")
+            str = stgr.sub(/<span class=".+">/, "")
             str.sub!("</span>", "")
             @xfile.puts(indent(%Q[<p class="indent_#{num}">#{str}</p>], @xindent + 2))
          else
-            @xfile.puts(indent(%Q[<p>#{sent.phrase}</p>], @xindent + 2))
+            @xfile.puts(indent(%Q[<p>#{str}</p>], @xindent + 2))
          end
       }
-#      phr.phrase.each_line {|p|
-#         xmlfile.puts(indent(%Q[#{p}], @xindent + 2))
-#      }
       @xfile.puts(indent(%Q[</blockquote>], @xindent))
    end
 
@@ -209,11 +196,6 @@ EOT
          @xfile.puts(indent(%Q[<table border="1" smilref="#{tabref}">], @xindent))
          @xfile.puts(indent(%Q[<caption id="#{idstr}" smilref="#{smilstr}">#{phr.caption}</caption>], @xindent + 2))
       elsif 1 == num
-#      num, row, column = phr.get_table
-#      if 1 == num
-#         tabref = compile_table_id(sectcount)
-#         phr.uid = @table_id
-#         tabref = compile_table_id(phr.args, sectcount)
          @xfile.puts(indent(%Q[<table border="1" smilref="#{tabref}">], @xindent)) if phr.caption.nil?
          @xfile.puts(indent("<tr>", @xindent + 2))
          @xfile.puts(indent(%Q[<#{phr.tag}>], @xindent + 4))
@@ -280,7 +262,7 @@ EOT
          @xfile.puts(indent(%Q[<sent id="#{idstr}" smilref="#{smilstr}">#{phr.phrase}</sent>], @xindent + 4))
          @xfile.puts(indent("</li>", @xindent + 2))
       elsif 'dt' == phr.dl
-         if phr.args.nil? #phr.enum.nil?
+         if phr.args.nil?
             @xfile.puts(indent("</dd>", @xindent + 2))
          end
          @xfile.puts(indent("<dt>", @xindent + 2))
@@ -437,13 +419,10 @@ EOT
          print_error(errmes)
       end
       unless /#{KANJI}+/ =~ k
-#         errmes = "ルビタグの漢字部分が違っているようです : #{rubytag}"
-#         print_error(errmes)
          mes = "[注意] 漢字以外が含まれているようです : #{rubytag}"
          puts mes
       end
       unless @yomi
-#         return tag = k if /#{KATA}+/ =~ r
          return tag = k if /\A[yY]/ =~ r
       end
       r = r.sub(/\A[yY]/, '')
