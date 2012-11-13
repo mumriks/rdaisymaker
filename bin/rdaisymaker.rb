@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # encoding: utf-8
 #
-# Copyright (c) 2011 Kishida Atsushi
+# Copyright (c) 2011, 2012 Kishida Atsushi
 #
 #
 
@@ -10,7 +10,7 @@ require 'fileutils'
 require 'optparse'
 require 'tempfile'
 
-VERSION = "0.2.3"
+VERSION = "0.3.0"
 DAISYM = "R DAISY Maker ver #{VERSION}"
 DNAME = "rdm"
 PLEXTALK = "PLEXTALK DAISY Producer ver 0.2.4.0"
@@ -74,6 +74,7 @@ require 'rdm/daisy'
 require 'rdm/phrase'
 require 'rdm/ncxbuilder'
 require 'rdm/opfbuilder'
+require 'rdm/rdm'
 
 def new_chapter
    @chapter = Chapter.new
@@ -84,215 +85,156 @@ def new_section
    @sect = Section.new
    @chapter.add_section(@sect)
    @sectcount += 1
-   @noterefNum = 0
+   @rdm.noterefNum = 0
 end
 
-def check_phrase_type(f)
-   f.each_line {|phrase|
-      phr = phrase.chomp
-      case phr
-      when /\A=+[\s]/
-         args = phr.slice(/=+/).size
-         phr2 = phr.sub(/=+\s/, '')
-         if /\A@<indent>{([^,]+),([^{]+)}/ =~ phr2
-            indent = $1
-            phr2 = $2
-            unless /\A[1-9]\z/ =~ indent
-               indent = nil
-               mes = "見出しのインデントは 1 から 9 までで指定してください。"
-               print_error(mes)
-            end
-         end
-         @p = Headline.new(phr2, args)
-         @p.indent = indent if indent
-         unless @p.valid_args?
-            mes = "レベルが深すぎます : #{File.basename(f)} line:#{@lineno}\n#{phr}"
-            print_error(mes)
-         end
-         new_chapter() if args == 1
-         new_section()
-         @sect.add_phrase(@p)
-      when %r<\A//\}>
-         mes = "ブロックのはじまりが見つかりません : \n#{File.basename(f)} line:#{@lineno}\n#{phr}"
-         print_error(mes)
-      when %r<\A//[a-z]+>
-         read_type(phr, f)
-      when /@<fn>/
-         read_reftype(phr)
-      when /@<an>/
-         read_reftype(phr)
-      when /^[\s　]*$/
-         @p = Paragraph.new("<p />")
-         @sect.add_phrase(@p)
-      when /\A[0-9０-９]+(?:ページ|ぺーじ)?\z/
-         @daisy.skippable.normal = "false"
-         @p = Normal.new(phr)
-         @sect.add_phrase(@p)
-      when /\A[fF]:[0-9０-９]+(?:ページ|ぺーじ)?\z/
-         @daisy.skippable.front = "false"
-         @p = Front.new(phr)
-         @sect.add_phrase(@p)
-      when /\A[sS]:[0-9０-９]+(?:ページ|ぺーじ)?\z/
-         @daisy.skippable.special = "false"
-         @p = Special.new(phr)
-         @sect.add_phrase(@p)
-      else
-         str = phr
-         @daisy.compile_inline_tag(str)
-         @p = Sent.new(phr)
-         @sect.add_phrase(@p)
-      end
-      @lineno += 1
-   }
+def level_mes(phr)
+   "レベルが深すぎるか、インデントが不正です : #{File.basename(@rdm.file)} line:#{@rdm.lineno}\n#{phr}"
 end
 
-def read_type(phr, f)
+PARAGRAPH = /^[\s　]*$/
+
+def make_paragraph
+   if 0 < @paCount
+      obj = Paragraph.new(@paCount)
+      @paCount = 0
+      return obj
+   end
+end
+
+def make_headline(phr)
+   arg = phr.slice(/=+/).size
+   phr2 = phr.sub(/=+\s/, '')
+   if /\A@<indent>{([^,]+),([^{]+)}/ =~ phr2
+      indent = $1
+      phr2 = $2
+   end
+   h = Headline.new(arg, indent) if Headline.valid_args?(arg, indent)
+   print_error(level_mes(phr)) unless h
+   hs = @rdm.make_sentence(phr2, 'Headline::Sentence', arg)
+   new_chapter() if arg == 1
+   new_section()
+   return [h, hs, h.dup.post]
+end
+
+def check_phrase_type(phrase)
+   objs = []
+   phr = phrase.chomp
+   case phr
+   when /\A=+[\s]/
+      pr = make_paragraph()
+      objs << pr if pr
+      objs << make_headline(phr)
+   when %r<\A//\}>
+      mes = "ブロックのはじまりが見つかりません : \n#{File.basename(@rdm.file)} line:#{@rdm.lineno}\n#{phr}"
+      print_error(mes)
+   when %r<\A//[a-z]+>
+     @type = nil
+      pr = make_paragraph()
+      objs << pr if pr
+      objs << read_type(phr)
+   when /@<fn>/
+      pr = make_paragraph()
+      objs << pr if pr
+      objs << @rdm.make_sentence(phr)
+      @daisy.skippable.noteref = 'false'
+   when /@<an>/
+      pr = make_paragraph()
+      objs << pr if pr
+      objs << @rdm.make_sentence(phr)
+      @daisy.skippable.annoref = 'false'
+   when PARAGRAPH
+      @paCount += 1
+   when /\A[fFsS]?:?[0-9０-９]+(?:ページ|ぺーじ)?\z/
+      pr = make_paragraph()
+      objs << pr if pr
+      objs << make_page(phr)
+   else
+      pr = make_paragraph()
+      objs << pr if pr
+      str = phr
+      @daisy.compile_inline_tag(str)
+      objs << Sentence.new(phr)
+   end
+   @rdm.lineno += 1
+   return objs.flatten
+end
+
+def read_type(phr)
+   objs = []
    type = phr.slice(/[a-z]+/)
    case type
-   when /\Atable\z/
-      phr, args = read_phrase(phr, f)
+   when /\Atable(b?)\z/
+      phr, args = read_phrase(phr)
       check_args(args, type)
-      table_flat(phr, args)
-      @tagids[args[0]] << Table.new("#{File.basename(f)} - line:#{@lineno}", args[0])
+      objs << table_block(phr, args, $1)
    when /\Aimage\z/
-      phr, args = read_phrase(phr, f)
+      phr, args = read_phrase(phr)
       check_args(args, type)
-      check_image(phr, args)
+      objs << image_block(phr, args)
    when /\Afootnote\z/
-      phr, args = read_phrase(phr, f)
-      type = 'Note'
+      @type = 'Note'
+      phr, args = read_phrase(phr)
       check_args(args, type)
       @daisy.skippable.note = "false"
-      note_flat(phr, args, type)
+      objs << note_block(phr, args, @type)
    when /\Aannotation\z/
-      phr, args = read_phrase(phr, f)
-      type = 'Annotation'
+      @type = 'Annotation'
+      phr, args = read_phrase(phr)
       check_args(args, type)
       @daisy.skippable.annotation = "false"
-      note_flat(phr, args, type)
+      objs << note_block(phr, args, @type)
    when /\Aprodnote\z/
-      phr, args = read_phrase(phr, f)
-      type = 'Prodnote'
+      @type = 'Prodnote'
+      phr, args = read_phrase(phr)
       check_args(args, type)
       @daisy.skippable.prodnote = "false"
-      note_flat(phr, args, type)
+      objs << note_block(phr, args, @type)
    when /\Asidebar\z/
-      phr, args = read_phrase(phr, f)
-      type = 'Sidebar'
+      @type = 'Sidebar'
+      phr, args = read_phrase(phr)
       check_args(args, type)
       @daisy.skippable.sidebar = "false"
-      note_flat(phr, args, type)
+      objs << note_block(phr, args, @type)
 #   when /\Alinenum\z/
 #
-   when /\Aquote\z/
-      phr, args = read_phrase(phr, f)
-      type = 'Quote'
-      note_flat(phr, args, type)
+   when /\Aquote(.?)\z/
+      @type = 'Quote'
+      phr, args = read_phrase(phr)
+      args[0] = $1 if args[0].nil?
+      objs << note_block(phr, args, @type)
    when /\Aitalic\z/
-      phr, args = read_phrase(phr, f)
-      sent_flat(phr, "italic")
+      phr, args = read_phrase(phr)
+      objs << modify_sentence(phr, 'italic')
    when /\Abold\z/
-      phr, args = read_phrase(phr, f)
-      sent_flat(phr, "bold")
+      phr, args = read_phrase(phr)
+      objs << modify_sentence(phr, 'bold')
    when /\Aunderline\z/
-      phr, args = read_phrase(phr, f)
-      sent_flat(phr, "underline")
+      phr, args = read_phrase(phr)
+      objs << modify_sentence(phr, 'underline')
    when /\Aindent\z/
-      phr, args = read_phrase(phr, f)
-      p = Indent.new(args[0])
-      @sect.add_phrase(p)
-      @indtbegin += 1
-   when /\Aindentend\z/
-      p = Indent.new("end")
-      @sect.add_phrase(p)
-      @indtend += 1
+      phr, args = read_phrase(phr)
+      objs << indent_block(phr, args)
    when /\Alist\z/
-      phr, args = read_phrase(phr, f)
-      list_flat(phr, args)
+      phr, args = read_phrase(phr)
+      objs << list_block(phr, args)
    else
-      mes = "未定義のタグです : //#{type}\n#{File.basename(f)} line:#{@lineno}\n#{phr}"
+      mes = "未定義のタグです : //#{@type}\n#{File.basename(@rdm.file)} line:#{@rdm.lineno}\n#{phr}"
       print_error(mes)
    end
+   return objs
 end
 
-def read_reftype(phrase)
-   @refmes = "引数の文法が違うようです : #{phrase}\n#{File.basename(@f)} line:#{@lineno}"
-   if /@<fn>{([^{]+?)}/ =~ phrase
-      args = $1
-      daisy3noteref(phrase, args)
-   elsif @daisy.instance_of?(TEXTDaisy)
-      mes = "使用できないタグです : #{phrase}\n#{File.basename(@f)} line:#{@lineno}"
-      print_error(mes)
-   elsif /@<an>\[([^\[]+)\]{([^{]+?)}/ =~ phrase
-      args, keyword = $1, $2
-      print_error(phrase)  unless /\A[a-z0-9_-]+\z/ =~ $1
-#      @daisy.skippable.annoref = "false"
-      exstr = %Q[<annoref idref="##{args}">#{keyword}</annoref>]
-      phr = phrase.sub(/@<an>\[[^\[]+\]{[^{]+}/, exstr)
-      p = Annoref.new(phr, args)
-      @skip_list[args] << Skip.new(@f, @lineno, p)
-      @sect.add_phrase(p)
-   else
-      print_error(@refmes)
-   end
-end
-
-def daisy3noteref(phrase, args)
-   if /,/ =~ args
-      argss = args.split(/,/)
-      args = argss[0]; noteref = argss[1]
-      @ref[0] = true
-   else
-      @noterefNum += 1
-      noteref = "(注#{@noterefNum})"
-      @ref[1] = true
-   end
-   print_error(@refmes)  unless /\A[a-zA-Z0-9_-]+\z/ =~ args
-   if @daisy.kind_of?(Daisy3)
-      reftag = %Q[<fnr id="" idref="#">#{noteref}</fnr>]
-   elsif @daisy.kind_of?(Daisy4)
-      noteref = @daisy.tag_vih(noteref) if /\A\d+\z/ =~ noteref
-      reftag = %Q[<a rel="note" epub:type="" id="" href="#">#{noteref}</a>]
-   end
-   phr = phrase.sub(/@<fn>{[^{]+}/, reftag)
-   @daisy.compile_inline_tag(phr)
-   @daisy.skippable.noteref = "false"
-   p = Noteref.new(phr, args)
-   p.noteref = noteref unless argss
-   @sect.add_phrase(p)
-   @skip_list[args] << Skip.new(@f, @lineno, p)
-end
-
-def daisy4noteref(phrase, args)
-   if /,/ =~ args
-      argss = args.split(/,/)
-      args = argss[0]; noteref = argss[1]
-      @ref[0] = true
-   else
-      @noterefNum += 1
-      noteref = "(注#{@noterefNum})"
-      @ref[1] = true
-   end
-   print_error(@refmes)  unless /\A[a-zA-Z0-9_-]+\z/ =~ args
-   phr = phrase.sub(/@<fn>{[^{]+}/, %Q[<a rel="note" epub:type="" id="" href="#">#{noteref}</a>])
-   @daisy.compile_inline_tag(phr)
-   @daisy.skippable.noteref = "false"
-   p = Noteref.new(phr, args)
-   p.noteref = noteref unless argss ##
-   @sect.add_phrase(p)
-   @skip_list[args] << Skip.new(@f, @lineno, p)
-end
-
-def read_phrase(phr, f)
+def read_phrase(phr)
    args = parse_args(phr.sub(%r<\A//[a-z]+>, '').rstrip.chomp('{'))
-   phrs = block_open?(phr) ? read_block(f) : nil
+   phrs = block_open?(phr) ? read_block(@rdm.file) : nil
    return phrs, args
 end
 
 def parse_args(str)
    return [] if str.empty?
    unless str[0,1] == '[' and str[-1,1] == ']'
-      mes = "引数の文法が違うようです : #{str}\n#{File.basename(@f)} line:#{@lineno}\n#{str}"
+      mes = "引数の文法が違うようです : #{str}\n#{File.basename(@rdm.file)} line:#{@rdm.lineno}\n#{str}"
       print_error(mes)
       return []
    end
@@ -306,483 +248,345 @@ end
 def read_block(f)
    buf = []
    c = 0
+   block = nil
    f.each_line {|line|
       if %r<\A//\}> =~ line
          break
+      elsif %r!\A//[a-z]+! =~ line
+         block = read_type(line)
+         buf.push block
+         c += block.size
+         @rdm.lineno += c
       else
          buf.push line.rstrip
-         c = c + 1
+         c += 1
+         @rdm.lineno += c
          if f.eof?
-            mes = "ブロックの終りが見つかりませんでした。(始まりは #{buf})\n#{File.basename(@f)} line:#{@lineno}"
+            mes = "ブロックの終りが見つかりませんでした。(始まりは #{buf})\n#{File.basename(@rdm.file)} line:#{@rdm.lineno}"
             print_error(mes)
-            return buf
          end
       end
    }
-   no = f.lineno
-   no = no + c
-   f.lineno = no
-   @lineno += c
-   buf
+   return buf
 end
 
 def check_args(args, type)
    unless 1 == args.size or 2 == args.size
-      mes = "引数の文法が違うようです : #{type}[#{args}]\n#{File.basename(@f)} line:#{@lineno}"
+      mes = "引数の文法が違うようです : #{type}[#{args}]\n#{File.basename(@rdm.file)} line:#{@rdm.lineno}"
       print_error(mes)
    end
 end
 
-def table_header(th, row, column)
-   row = row + 1
-   theader = {}
-   case th
-   when /-+/
-      table_header_column(theader, column)
-   when /\|+/
-      table_header_row(theader, column, row)
-   when /\++/
-      table_header_column(theader, column)
-      table_header_row(theader, column, row)
-   end
-   theader
-end
-
-def table_header_column(theader, column)
-   (1..column).each {|n|
-      theader["#{n}"] = 'th'
-   }
-end
-
-def table_header_row(theader, column, row)
-   1.step(row * (column - 1), column) {|n|
-      theader["#{n}"] = 'th'
-   }
-end
-
-def table_tag(theader, num)
-   if theader["#{num}"] == 'th'
-      tag = 'th'
-   else
-      tag = 'td'
-   end
-   tag
-end
-
-def table_flat(phr, args)
+def table_block(phr, args, border)
+   objs = []
+   @rdm.first_sentence = nil
    unless phr.size == 0
-# v caption
-#=begin
-      unless args[1].nil?
-         @capt = Table.new("", args)
-         @sect.add_phrase(@capt)
-      end
-#=end
-# ^ caption
-      row = phr.size
-      column = 0
-      table = []
-      t = []
-      th = ''
-      phr.each {|r|
-         t = r.split(/\s/)
-         if /[-\|\+]+/ =~ t.to_s
-            th = t[0].to_s
-            row = row - 1
-         else
-            table << t
-         end
-         column = t.size if column < t.size
-      }
+      tbl = Table.new(args[0], border)
+      objs << tbl
+      @rdm.tagids[args[0]] << ["#{File.basename(@rdm.file)} - line:#{@rdm.lineno}", tbl]
+      objs << @rdm.make_table_caption(args) unless args[1].nil?
+      th, row, column, table = @rdm.get_table_structure(phr)
       theader = {}
-      theader = table_header(th, row, column) unless th == ''
+      table = @rdm.table_header(phr) unless th == ''
       table.each_with_index {|tr, i|
+         objs << Tr.new
          cc = 0
          tr.each {|td|
             cc = cc + 1
             num = column * i.to_i + cc
-            tag = table_tag(theader, num)
-            p = Table.new(td, args)
-            p.set_table(num, row, column, tag)
-            @sect.add_phrase(p)
+            tag = @rdm.table_tag(num)
+            if td.kind_of?(Array)
+               objs << @rdm.valid_syntax_at_table?(td)
+            elsif "" == td
+               objs << eval("#{tag}.new.null")
+            else
+               cells, @ts = @rdm.make_table_cell(tag, td)
+               objs << cells
+            end
          }
          if cc < column
             (column - cc).times {|c|
                num = column * i.to_i + c
-               tag = table_tag(theader, num)
-               p = Table.new("　", args)
-               p.set_table(num, row, column, tag)
-               @sect.add_phrase(p)
+               tag = @rdm.table_tag(num)
+               objs << eval("#{tag}.new.null")
             }
          end
+         objs << Tr.new.post
       }
-# v caption
-#=begin
-      @capt.set_table(0, row, column, '') if @capt
-#=end
-# ^ caption
+      objs << Table.new(args[0]).post
+      @rdm.first_sentence.endcell = @ts
    else
-      mes = "テーブルのデータがありません :  //table#{args}\n#{File.basename(@f)} line:#{@lineno}"
-      print_error(mes)
+      @rdm.not_table_data(args)
    end
+   return objs
 end
 
-def image_group_set(sw, args)
-   ig = ImageGroup.new(args)
-   eval ("ig.#{sw}")
-   @sect.add_phrase(ig)
-end
-
-def check_image(phr, args)
-   em = {"errmes1" => "画像ファイルが指定されていません '//image[#{args}]{'",
-    "errmes2" => "そのファイルは見つかりません : ",
-    "errmes3" => "サポートされていない画像タイプです : "}
-   where = "\n#{File.basename(@f)} line:#{@lineno}"
-   @imgcount = 0
-   @imgids = ""
-   @pnotes = []
-   @group = []
+def image_block(phr, args)
+   objs = []
+   img = nil
+   pnotes = []
+   group = []
    phr.each {|p|
-      if /\A@<pn>(?:\[(.+)?\])?{([^{]+)}/ =~ p
-         @daisy.skippable.prodnote = "false"
-         render, phrase = $1, $2
-         @o = Prodnote.new(phrase, render)
-         result = @o.valid_render?
-         unless result
-            mes = "render の指定が違っているようです : [#{render}]" + where
-            print_error(mes)
+      if p.kind_of?(Array)
+         if @rdm.valid_syntax_at_image?(p)
+            group << p
+            pnotes << p[0]
+            p[0].group = args[0]
          end
-         @pnotes << @o
-         @o.group = args[0]
-      elsif /\A[0-9０-９]+(?:ページ|ぺーじ)?\z/ =~ p
-         @daisy.skippable.normal = "false"
-         @o = Normal.new(p)
-      elsif /\A[fF]:[0-9０-９]+(?:ページ|ぺーじ)?\z/ =~ p
-         @daisy.skippable.front = "false"
-         @o = Front.new(p)
-      elsif /\A[sS]:[0-9０-９]+(?:ページ|ぺーじ)?\z/ =~ p
-         @daisy.skippable.special = "false"
-         @o = Special.new(p)
+      elsif /\A[fFsS]?:?[0-9０-９]+(?:ページ|ぺーじ)?\z/ =~ p
+         @rdm.not_page_in_image
       else
-         unless File.exist?(p)
-            if @o.instance_of?(Image)
-               @o.caption = p.gsub(/《[^》]+》/, "")
+         if img.instance_of?(Image)
+            if File.exist?(p)
+               mes, image = @daisy.check_imagefile(p)
+               img = @rdm.make_image(mes, image, args)
+               img.width, img.height = set_image_size("#{@daisy.i_path}/#{image}")
+               group << img
+            elsif img.alt.nil?
+               img.alt = p.gsub(/《[^》]+》/, "")
+            else
+               @rdm.invalid_phrase_in_image(p)
             end
-            next
-         end
-         @imgcount += 1
-         @imgids = @imgids + "#{args[0]}-#{@imgcount} "
-         mes, image = @daisy.check_imagefile(p)
-         if  /errmes[1-3]/ =~ mes
-            print_error(em["#{mes}"] + p + where)
-         elsif 'errmes4' == mes
-            @big_image << p
-            @o = Image.new(p, "#{args[0]}-#{@imgcount}")
          else
-            @o = Image.new(image, "#{args[0]}-#{@imgcount}")
+            mes, image = @daisy.check_imagefile(p)
+            img = @rdm.make_image(mes, image, args)
+            img.width, img.height = set_image_size("#{@daisy.i_path}/#{image}")
+            group << img
          end
-         width, height = @daisy.get_image_size(p)
-         @o.width = width; @o.height = height
-         @tagids[@o.args] << Image.new("#{File.basename(@f)} - line:#{@lineno}", @o.args)
       end
-      @group << @o
    }
-   print_error(em["errmes1"] + where) if @imgcount == 0
-   @pnotes.each {|pn|
-      pn.ref = @imgids.rstrip
+   print_error(Daisy::ERRMES["errmes1"] + where) if @rdm.imgcount == 0
+   pnotes.each {|pn|
+      pn.ref = @rdm.imgids.rstrip
+      pn.ncxsrc.arg = "#{pn.arg}-E"
    }
+   objs << @rdm.make_image_group(group, args)
+   return objs
+end
 
-   image_group_set("start", args[0]) if @group.size > 1 or args[1]
-   @group.each {|obj|
-      if obj.instance_of?(Image)
-         @imgcount -= 1
-         obj.ref = @imgids.rstrip
-         @sect.add_phrase(obj)
-         if @imgcount == 0 and args[1]
-            @caption = Caption.new(args[1])
-            @caption.ref = @imgids.rstrip
-         end
-      else
-         @sect.add_phrase(obj)
-      end
-   }
-   if @caption
-      @sect.add_phrase(@caption)
-      @caption = nil
-   end
-   image_group_set("finish", args[0]) if @group.size > 1 or args[1]
+def set_image_size(file)
+   width, height = @daisy.get_image_size(file)
+   return width, height
 end
 
 def check_image_size
-   unless 0 == @big_image.size
+   unless 0 == @rdm.big_image.size
       puts "次の画像は推奨サイズ(#{Daisy::IMGWIDTH}x#{Daisy::IMGHEIGHT})よりも大きいです。"
-      @big_image.uniq.each {|img|
-         width, height = @daisy.get_image_size(img)
+      @rdm.big_image.uniq.each {|img|
+         width, height = Daisy::get_image_size(img)
          puts "#{img} (#{width} x #{height})"
       }
       if @daisy.kind_of?(Daisy3)
          print_error("図書作成を終了します。")
+#      elsif @daisy.kind_of?(Daisy4)
+#         print_error("図書作成を終了します。(4)")
       end
    end
 end
 
-def note_flat(phr, args, type)
-   line = phr.size
+def indent_block(phr, args)
+   objs = []
+   pr = make_paragraph()
+   objs << pr if pr
+   if Indent.valid_indent?(args[0])
+      if 'Quote' == @type
+         @i = Quote::Indent.new(args[0])
+      else
+         @i = Indent.new(args[0])
+      end
+   end
+   objs << @i
+   phr.each_with_index {|ph, i|
+      if ph.kind_of?(Array)
+         objs << ph
+         next
+      elsif PARAGRAPH =~ ph
+         @paCount += 1
+      elsif /\A[fFsS]?:?[0-9０-９]+(?:ページ|ぺーじ)?\z/ =~ ph
+         pr = make_paragraph()
+         objs << pr if pr
+         objs << make_page(ph)
+      else
+         pr = make_paragraph()
+         objs << pr if pr
+         if @type
+            objs << @rdm.make_sentence(ph, "#{@type}::Sentence", "bis#{i}")
+         else
+            objs << @rdm.make_sentence(ph, "Sentence", "is#{i}")
+         end
+      end
+   }
+   pr = make_paragraph()
+   objs << pr if pr
+   objs << @i.dup.post
+   return objs
+end
+
+def note_block(phr, args, type)
+   objs = []
+   line = @rdm.check_phrase_size(type, phr)
+   @n = @rdm.make_note_pre(args, type)
+   objs << @n
    unless line == 0
-      if 'Note' == type or 'Annotation' == type
-         notes = [] if line > 1
-      end
-      str = ""
-      phr.each {|p|
-         str = str + p + "\n"
-         next if 'Sidebar' == type or 'Quote' == type
-         pp = eval ("#{type}.new(p, args)")
-         pp.sectnum = @sectcount
-         @sect.add_phrase(pp)
-         if 'Prodnote' == type
-            result = pp.valid_render?
-            unless result
-               mes = "render の指定が違っているようです : [#{args}]\n#{File.basename(@f)} line:#{@lineno}"
-               print_error(mes)
+      @paCount = 0
+      @rdm.first_sentence = nil
+      phr.each_with_index {|p, i|
+         if p.kind_of?(Array)
+            if @rdm.valid_syntax_at_note?(p)
+               objs << p
+               next
             end
-            next
          end
-         @skip_list[args[0]] << Skip.new(@f, @lineno, pp) if notes.nil?
-         notes << pp unless notes.nil?
+         case type
+         when 'Quote'
+            if PARAGRAPH =~ p
+               @paCount += 1
+            else
+               pr = make_paragraph()
+               objs << pr if pr
+               objs << @rdm.make_sentence(p, 'Quote::Sentence')
+            end
+         when 'Note', 'Annotation'
+            if PARAGRAPH =~ p
+               @paCount += 1
+            else
+               pr = make_paragraph()
+               objs << pr if pr
+               if phr.size == i + 1
+                  ns = @rdm.make_sentence(p, "#{type}::Sentence", "#{args[0]}-E")
+               else
+                  ns = @rdm.make_sentence(p, "#{type}::Sentence", "#{args[0]}-#{i}")
+               end
+               objs << ns
+               @rdm.first_sentence = ns if @rdm.first_sentence.nil?
+               @rdm.skipChainList << [args[0], Skip.new(@rdm.file, @rdm.lineno, ns)]
+            end
+         when 'Prodnote', 'Sidebar'
+            if PARAGRAPH =~ p
+               @paCount += 1
+            else
+               pr = make_paragraph()
+               objs << pr if pr
+               if args[1] and @rdm.first_sentence.nil?
+                  objs << @rdm.sidebar_caption(args[1])
+               end
+               @rdm.nCount += 1
+               if phr.size == i + 1
+                  ns = @rdm.make_sentence(p, "#{type}::Sentence", "ps#{@rdm.nCount}-E")
+               else
+                  ns = @rdm.make_sentence(p, "#{type}::Sentence", "ps#{@rdm.nCount}-#{i}")
+               end
+               objs << ns
+               @rdm.first_sentence = ns if @rdm.first_sentence.nil?
+            end
+         end
       }
-      if 'Sidebar' == type
-         str.chomp!
-         pp = eval ("#{type}.new(str, args)")
-         @sect.add_phrase(pp)
-         if pp.instance_of?(Sidebar)
-            result = pp.valid_render?
-            unless result
-               mes = "render の指定が違っているようです : [#{args}]\n#{File.basename(@f)} line:#{@lineno}"
-               print_error(mes)
-            end
-         end
-      elsif 'Quote' == type
-         q = Quote.new
-         q.border = args[0] if /\Ab/ =~ args[0]
-         lines = str.split(/\n/)
-         lines.each {|line|
-            q.add_lines(@daisy.compile_inline_tag(line))
-         }
-         @sect.add_phrase(q)
-      end
-      unless notes.nil?
-         ns = eval ("#{type}s.new(str, args)")
-         ns.notes = notes
-         @skip_list[args[0]] << Skip.new(@f, @lineno, ns)
-      end
    else
-      type = 'footnote' if type == 'Note'
-      mes = "注釈本文がありません : //#{type.downcase}#{args}
-#{File.basename(@f)} line:#{@lineno}"
-      print_error(mes)
+      @rdm.no_sentence_in_note(type, args)
    end
+   pr = make_paragraph()
+   objs << pr if pr
+   objs << @n.dup.post
+   @n.ncxsrc = @rdm.first_sentence unless 'Quote' == type
+   return objs
 end
 
-def sent_flat(phr, tag)
+def modify_sentence(phr, tag)
+   objs = []
    phr.each {|p|
-      if /^[\s　]*$/ =~ p
-         s = Paragraph.new("<p />")
-         @sect.add_phrase(s)
+      if PARAGRAPH =~ p
+         objs << Paragraph.new.null
       else
          str = @daisy.compile_inline_tag(p)
          sent = eval ("@daisy.tag_#{tag}(str)")
-         s = Sent.new(sent)
-         @sect.add_phrase(s)
+         objs << @rdm.make_sentence(sent, 'Sentence')
       end
    }
+   return objs
 end
 
-def list_flat(phr, args)
-   type = nil; enum = nil
-   if 0 < args.size
-      if /\A([1aAiI])\z/ =~ args[0]
-         enum = $1; type = 'ol'
-      end
-   end
-   if /^:[\s　]+/ =~ phr[0]
-      type = 'dl'; enum = ':'
-   elsif type.nil?
-      type = 'ul'; enum = '*'
-   end
+def list_block(phr, args)
+   objs = []
+   list, type, id = @rdm.list_pre(phr[0], args)
+   objs << list
    list_num = phr.size - 1
-   dltag = ''
    phr.each_with_index {|p, i|
-      if '' == p
-         mes = "リストデータがありません。
-#{File.basename(@f)} line:#{@lineno}
-#{p}\n"
-         print_error(mes)
+      @rdm.not_data_in_list if '' == p
+      if p.kind_of?(Array)
+         if @rdm.valid_syntax_at_list?(p)
+#            objs << p
+         end
       end
       case i
       when 0
          if 'dl' == type
             if /\A:\s+/ =~ p
-               dltag = 'dt'
+               @dd = false
+               objs << @rdm.make_dt(p, id)
             else
-               mes = "用語リストのタイトルがありません。
-#{File.basename(@f)} line:#{@lineno}
-#{p}\n"
-               print_error(mes)
+               @rdm.not_dt_data(p)
             end
+         else
+            objs << @rdm.make_li(p, id)
          end
-         @p = List.new(p)
-         @p.args = "begin"
       when list_num
          if 'dl' == type
             if /\A:\s+/ =~ p
-               mes = "用語リストのデータがありません。
-#{File.basename(@f)} line:#{@lineno}
-#{p}\n"
-               print_error(mes)
+               @rdm.not_dd_data(p)
             else
-               if /dd/ =~ dltag
-                  dltag = dltag.succ
-               else
-                  dltag = 'dd0'
-               end
+               objs << Dd.new unless @dd
+               objs << @rdm.make_dd(p, "#{id}-E")
             end
+         else
+            objs << @rdm.make_li(p, "#{id}-E")
          end
-         @p = List.new(p)
-         @p.args = "end"
       else
          if 'dl' == type
             if /\A:\s+/ =~ p
-               if /dd/ =~ dltag
-                  dltag = 'dt'
+               if @dd
+                  @dd = false
+                  objs << Dd.new.post
+                  objs << @rdm.make_dt(p)
                else
-                  mes = "用語リストのデータがありません。
-#{File.basename(@f)} line:#{@lineno}
-#{p}\n"
-                  print_error(mes)
+                  @rdm.not_dd_data(p)
                end
             else
-               if /dd/ =~ dltag
-                  dltag = dltag.succ
-               else
-                  dltag = 'dd0'
+               unless @dd
+                  @dd = true
+                  objs << Dd.new
                end
+               objs << @rdm.make_sentence(p, "Dd::Sentence")
             end
-         end
-         @p = List.new(p)
-      end
-      @p.set_type(dltag, type, enum)
-      @p.cut_headmark
-      @sect.add_phrase(@p)
-   }
-end
-
-def check_same_args?
-   @tagids.each {|key, t|
-      if t.size != 1
-         tagstr = ""
-         t.each {|obj|
-            tagstr = tagstr + "#{obj.phrase} //#{obj.namedowncase}[#{key}]\n"
-         }
-         mes = "異なるタグで同じ識別子を使っているようです :\n" + tagstr
-         print_error(mes)
-      end
-   }
-end
-
-def skippable_check
-   check_skipable_syntax(@skip_list) if @skip_list != nil
-end
-
-def check_skipable_syntax(skip_list)
-   check_note_ref_pare(skip_list)
-   check_note_ref_order(skip_list)
-end
-
-def check_note_ref_order(skip_list)
-   skip_list.each {|key, skip|
-      ref = 0
-      note = 0
-      skip.each_with_index {|s, i|
-         @sf = s.file
-         @sl = s.lineno
-         @so = s.obj
-         ref = i if noteref?(s.obj)
-         note = i if note?(s.obj) or notes?(s.obj)
-         ref = i if annoref?(s.obj)
-         note = i if annotation?(s.obj) or annotations?(s.obj)
-      }
-      if ref > note
-         mes = "注釈と注釈番号の順序が反対のようです : [#{key}]
-#{@sf} line:#{@sl}\n#{@so.phrase}"
-         print_error(mes)
-      end
-   }
-end
-
-def check_note_ref_pare(skip_list)
-   skip_list.each {|key, skip|
-      ref = 0
-      note = 0
-      skip.each {|s|
-         @sf = s.file
-         @sl = s.lineno
-         @so = s.obj
-         ref += 1 if noteref?(s.obj)
-         note += 1 if note?(s.obj)
-         note += 1 if notes?(s.obj)
-         ref += 1 if annoref?(s.obj)
-         note += 1 if annotation?(s.obj)
-         note += 1 if annotations?(s.obj)
-      }
-      unless ref == 0
-         mes = ""
-         if ref > 1
-            mes = "同じ識別子を持った注釈番号が複数あるようです [#{key}]
-#{@sf} line:#{@sl}\n#{@so.phrase}"
-            print_error(mes)
-         elsif note > 1
-            mes = "同じ識別子を持った注釈が複数あるようです [#{key}]
-#{@sf} line:#{@sl}\n#{@so.phrase}"
-            print_error(mes)
-         elsif ref > note
-            mes = "注釈番号 [#{key}] に対応する注釈が見つかりません
-#{@sf} line:#{@sl}\n#{@so.phrase}"
-            print_error(mes)
-         elsif ref < note
-            mes = "注釈番号 [#{key}] に対応する注釈が複数あるようです
-#{@sf} line:#{@sl}\n#{@so.phrase}"
-            print_error(mes)
+         else
+            objs << @rdm.make_li(p)
          end
       end
    }
+   objs << list.dup.post
+   list.ncxsrc = @rdm.first_sentence
+   return objs
 end
 
-def set_note_ref_chain
-   child = nil
-   @skip_list.each {|key, skip|
-      skip.reverse_each {|s|
-         if notes?(s.obj) or annotations?(s.obj)
-            s.obj.notes.reverse.each {|n|
-               unless child.nil?
-                  n.child = child
-               end
-               child = n
-            }
-         elsif note?(s.obj) or annotation?(s.obj)
-            unless child.nil?
-               s.obj.child = child
-            end
-            child = s.obj
-         elsif noteref?(s.obj) or annoref?(s.obj)
-            unless child.nil?
-               s.obj.child = child
-               s.obj.child.noteref = s.obj.noteref unless s.obj.noteref.nil?
-            end
-            child = nil
-         end
+def make_page(phr)
+   case phr.chomp
+   when /\A[0-9０-９]+(?:ページ|ぺーじ)?\z/
+      @daisy.skippable.normal = "false"
+      return Normal.new(phr)
+   when /\A[fF]:[0-9０-９]+(?:ページ|ぺーじ)?\z/
+      @daisy.skippable.front = "false"
+      return Front.new(phr)
+   when /\A[sS]:[0-9０-９]+(?:ページ|ぺーじ)?\z/
+      @daisy.skippable.special = "false"
+      return Special.new(phr)
+   end
+end
+
+def set_skippable_mark
+   if 0 < @rdm.skippable.size
+      @rdm.skippable.each {|s|
+         eval "@daisy.skippable.#{s} = 'false'"
       }
-      child = nil
-   }
+   end
 end
 
 def set_readid
@@ -791,58 +595,34 @@ def set_readid
       chapter.sections.each {|section|
          readid = 0
          section.phrases.each {|phr|
-            if noteref?(phr)
-               totalid += 1
-               readid += 1
-               phr.totalid = totalid
-               phr.readid = readid
-               p = phr
-               until p.child.nil?
+            if phr.kind_of?(Phrase)
+               if @rdm.noterefS?(phr)
                   totalid += 1
                   readid += 1
-                  p.child.totalid = totalid
-                  p.child.readid = readid
-                  p = p.child
+                  phr.totalid = totalid
+                  phr.readid = readid
+                  p = phr
+                  until p.child.nil?
+                     totalid += 1
+                     readid += 1
+                     p.child.totalid = totalid
+                     p.child.readid = readid
+                     p = p.child
+                  end
+               else
+                  if phr.totalid.nil?
+                     totalid += 1
+                     phr.totalid = totalid
+                  end
+                  if phr.readid.nil?
+                     readid += 1
+                     phr.readid = readid
+                  end
                end
-            elsif parag?(phr) or image?(phr) or imggrp?(phr)
-               next
-            else
-               totalid += 1
-               readid += 1
-               phr.totalid = totalid if phr.totalid.nil?
-               phr.readid = readid if phr.readid.nil?
             end
          }
       }
    }
-end
-
-def note?(obj)
-   obj.instance_of?(Note)
-end
-def notes?(obj)
-   obj.instance_of?(Notes)
-end
-def noteref?(obj)
-   obj.instance_of?(Noteref)
-end
-def annotation?(obj)
-   obj.instance_of?(Annotation)
-end
-def annotations?(obj)
-   obj.instance_of?(Annotations)
-end
-def annoref?(obj)
-   obj.instance_of?(Annoref)
-end
-def parag?(obj)
-   obj.instance_of?(Paragraph)
-end
-def image?(obj)
-   obj.instance_of?(Image)
-end
-def imggrp?(obj)
-   obj.instance_of?(ImageGroup)
 end
 
 def main
@@ -891,53 +671,44 @@ yaml ファイルもしくは、オプションで図書タイプを指定して
       @daisy.bookname = bookname
       @daisy.mk_temp(temp)
       @sectcount = 0
-      ti = Hash.new {|ti, key| ti[key] = []}
-      @tagids = ti
-      s = Hash.new {|s, key| s[key] = []}
-      @skip_list = s
-      @noterefNum = 0
-      @ref = Array.new(2)
-      @big_image = []
+      @paCount = 0
+      @rdm = RDM.new
       if File.exists?("SECTIONS")
          File.open("SECTIONS") {|section|
             section.each_line {|file|
                next if /^#/ =~ file
-               @indtbegin = @indtend = 0
                if /\Acover(?:.txt)?/ =~ file
                   @daisy.build_cover(file.chomp)
                   next
                end
                File.open("#{file.chomp}", "r:UTF-8") {|f|
-                  @lineno = 1
-                  @f = f
-                  check_phrase_type(f)
+                  @rdm.lineno = 1
+                  @rdm.file = f
+                  f.each_line {|phrase|
+                     objs = check_phrase_type(phrase)
+                     objs.each {|o| @sect.add_phrase(o) }
+                  }
+                  pr = make_paragraph()
+                  @sect.add_phrase(pr) if pr
                }
-               unless @indtbegin == @indtend
-                  mes = "インデントタグのはじまりと終わりの数が合いません。
-file: #{file.chomp} begin:#{@indtbegin} end:#{@indtend}\n"
-                  print_error(mes)
-               end
-               if @ref[0] && @ref[1]
-                  puts "注釈番号の指定で、有りと無しが混在しています。#{file.chomp}"
-               end
+               @rdm.refNum_unity?(file)
             }
          }
       else
          mes = "SECTIONS ファイルが見つかりません。作成してから再実行してください。"
          print_error(mes)
       end
-      check_same_args?
+      @rdm.check_same_args?()
       check_image_size()
-      skippable_check()
-      set_note_ref_chain()
+      @rdm.skippable_check()
+      set_skippable_mark()
+      @rdm.set_note_ref_chain()
       set_readid()
       @daisy.build_daisy
-      @daisy.build_ncx
-      @daisy.build_opf
       @daisy.copy_files
       FileUtils.rm_r(temp) if debug.nil?
    rescue => err
-      STDERR.puts err
+      STDERR.puts $0, err
       FileUtils.rm_r(temp) if debug.nil? and File.exist?(temp)
       FileUtils.rm_r(bookname) if debug.nil? and File.exist?(bookname)
    end

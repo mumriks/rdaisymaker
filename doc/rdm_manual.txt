@@ -1,107 +1,107 @@
-# R DAISY Maker の使い方（暫定版）
+# R DAISY Maker �̎g�����i�b��Łj
 #
 # Copyright (c) 2011, Kishida Atsushi
 # qublilabo@gmail.com
 
-１．R DAISY Maker ってなに？
+�P�DR DAISY Maker ���ĂȂɁH
 
-　R DAISY Maker（以降 RDM ）は DAISY 図書（現時点ではテキストデイジー図書限定）を生成するためのプログラムです。主に Windows 環境での使用を想定しています。
+�@R DAISY Maker�i�ȍ~ RDM �j�� DAISY �}���i�����_�ł̓e�L�X�g�f�C�W�[�}������j�𐶐����邽�߂̃v���O�����ł��B��� Windows ���ł̎g�p��z�肵�Ă��܂��B
 
-　バージョン 0.2.0 からは EPUB3 図書の生成に対応しています。
+�@�o�[�W���� 0.2.0 ����� EPUB3 �}���̐����ɑΉ����Ă��܂��B
 
-    ・図書の編集には、エディタやワープロソフトを使用します。
-    ・改行までの一行がフレーズとなります。
-    ・図の指定（図のタイトル、キャプションなどイメージグループに対応）
-    ・表の指定（キャプション、ヘッダに対応）
-    ・ルビ（デイジー様式、青空文庫様式、ReVIEW 様式）
-    ・注釈番号、注釈の読み飛ばし（スキッパブル）機能
-    ・prodnote、annotation、sidebar  （linenum は未実装）
-    ・通常ページ、front ページ、special ページ
-        （注釈番号、注釈、prodnote、annotation、sidebar、
-          通常ページ、frontページ、specialページで読み飛ばし設定が有効）
-    ・太字、下線、斜体、傍点
-    ・引用符
-    ・箇条書きリスト（数字なし、数字つき）、用語リスト
-    ・句読点の統一（英文中を除く）
+    �E�}���̕ҏW�ɂ́A�G�f�B�^�⃏�[�v���\�t�g���g�p���܂��B
+    �E���s�܂ł̈�s���t���[�Y�ƂȂ�܂��B
+    �E�}�̎w��i�}�̃^�C�g���A�L���v�V�����ȂǃC���[�W�O���[�v�ɑΉ��j
+    �E�\�̎w��i�L���v�V�����A�w�b�_�ɑΉ��j
+    �E���r�i�f�C�W�[�l���A�󕶌ɗl���AReVIEW �l���j
+    �E���ߔԍ��A���߂̓ǂݔ�΂��i�X�L�b�p�u���j�@�\
+    �Eprodnote�Aannotation�Asidebar  �ilinenum �͖������j
+    �E�ʏ�y�[�W�Afront �y�[�W�Aspecial �y�[�W
+        �i���ߔԍ��A���߁Aprodnote�Aannotation�Asidebar�A
+          �ʏ�y�[�W�Afront�y�[�W�Aspecial�y�[�W�œǂݔ�΂��ݒ肪�L���j
+    �E�����A�����A�ΆA�T�_
+    �E���p��
+    �E�ӏ��������X�g�i�����Ȃ��A�������j�A�p�ꃊ�X�g
+    �E��Ǔ_�̓���i�p�����������j
 
 
-２．使用の準備
+�Q�D�g�p�̏���
 
-　必要なファイル。
-        ・Ruby-1.9.x ------------------------- 必須
+�@�K�v�ȃt�@�C���B
+        �ERuby-1.9.x ------------------------- �K�{
           (http://www.artonx.org/data/asr/)
 
-        ・RDAISYMaker ------------------------ 必須
+        �ERDAISYMaker ------------------------ �K�{
           (https://github.com/mumriks/rdaisymaker)
 
-        ・image_size ライブラリ -------------- 必須
-         （http://rubyforge.org/frs/?group_id=3460）
+        �Eimage_size ���C�u���� -------------- �K�{
+         �ihttp://rubyforge.org/frs/?group_id=3460�j
 
-        ・uuid ライブラリ -------------------- 必須
+        �Euuid ���C�u���� -------------------- �K�{
           (https://github.com/shyouhei/ruby-uuid)
 
-        ・rubyzip ライブラリ ----------------- EPUB3(DAISY4)で必須
+        �Erubyzip ���C�u���� ----------------- EPUB3(DAISY4)�ŕK�{
           (http://github.com/aussiegeek/rubyzip)
 
-        ・MeCab ------------------------------ ルビ振りするなら必須
-        ・MeCab-Ruby バインディング ---------- 　　　　同上
+        �EMeCab ------------------------------ ���r�U�肷��Ȃ�K�{
+        �EMeCab-Ruby �o�C���f�B���O ---------- �@�@�@�@����
           (http://mecab.googlecode.com/svn/trunk/mecab/doc/index.html)
 
-        ・epubcheck -------------------------- EPUB3 では望ましい
+        �Eepubcheck -------------------------- EPUB3 �ł͖]�܂���
           (http://code.google.com/p/epubcheck/)
 
 
-　RDM を使用するには Ruby が必要になります。先に Ruby をインストールしてください。
+�@RDM ���g�p����ɂ� Ruby ���K�v�ɂȂ�܂��B��� Ruby ���C���X�g�[�����Ă��������B
 
-　rdm フォルダを任意の場所に置いたら、フォルダの中にある win_setup.bat をダブルクリックします。フォルダ内に rdmconsole.bat が生成されます。
+�@rdm �t�H���_��C�ӂ̏ꏊ�ɒu������A�t�H���_�̒��ɂ��� win_setup.bat ���_�u���N���b�N���܂��B�t�H���_���� rdmconsole.bat ����������܂��B
 
-　もしも、rdm フォルダを別の場所に移動した場合には、再度 win_setup.bat を実行し、生成された rdmconsole.bat を使用するようにしてください。
+�@�������Ardm �t�H���_��ʂ̏ꏊ�Ɉړ������ꍇ�ɂ́A�ēx win_setup.bat �����s���A�������ꂽ rdmconsole.bat ���g�p����悤�ɂ��Ă��������B
 
-　編集ツールの pedit.rb でルビ振り機能を使う際には、形態素解析エンジンの MeCab （めかぶ）も必要になりますが、ルビ振りを使わなければ必要ありません。
+�@�ҏW�c�[���� pedit.rb �Ń��r�U��@�\���g���ۂɂ́A�`�ԑf��̓G���W���� MeCab �i�߂��ԁj���K�v�ɂȂ�܂����A���r�U����g��Ȃ���ΕK�v����܂���B
 
-　画像サイズの処理に image_size のインストールが必要です。（http://rubyforge.org/frs/?group_id=3460）　image_size.rb を /lib 以下に置きます。
+�@�摜�T�C�Y�̏����� image_size �̃C���X�g�[�����K�v�ł��B�ihttp://rubyforge.org/frs/?group_id=3460�j�@image_size.rb �� /lib �ȉ��ɒu���܂��B
 
-　uuid.rb も /lib 以下に置きます。ただし Windows では File.open 部分の "w" と "r+" 部分を、それぞれ "wb" と "r+b" に修正する必要があります。
+�@uuid.rb �� /lib �ȉ��ɒu���܂��B������ Windows �ł� File.open ������ "w" �� "r+" �������A���ꂼ�� "wb" �� "r+b" �ɏC������K�v������܂��B
 
-　rubyzip はすべての zip フォルダを、/lib 以下に置いてください。
+�@rubyzip �͂��ׂĂ� zip �t�H���_���A/lib �ȉ��ɒu���Ă��������B
 
-　epubcheck プログラムは、/lib/rdm/epubcheck 以下に置いてください。
+�@epubcheck �v���O�����́A/lib/rdm/epubcheck �ȉ��ɒu���Ă��������B
 
-３．生成の準備
+�R�D�����̏���
 
-　作業用の任意のフォルダを用意し、図書の原稿テキストファイルをその中に全て置きます。準備で生成した rdmconsole.bat もコピーします。
+�@��Ɨp�̔C�ӂ̃t�H���_��p�ӂ��A�}���̌��e�e�L�X�g�t�@�C�������̒��ɑS�Ēu���܂��B�����Ő������� rdmconsole.bat ���R�s�[���܂��B
 
-　原稿テキストファイルはすべて utf-8 で保存してください。また、ファイル名に日本語は使用しないようにしてください。
+�@���e�e�L�X�g�t�@�C���͂��ׂ� utf-8 �ŕۑ����Ă��������B�܂��A�t�@�C�����ɓ��{��͎g�p���Ȃ��悤�ɂ��Ă��������B
 
-　使用する画像ファイルもすべて作業用フォルダの中に置きます。画像ファイル名にも日本語は使用しないようにしてください。
+�@�g�p����摜�t�@�C�������ׂč�Ɨp�t�H���_�̒��ɒu���܂��B�摜�t�@�C�����ɂ����{��͎g�p���Ȃ��悤�ɂ��Ă��������B
 
-　原稿テキストファイルの並び順を SECTIONS ファイルに書き込みます。このファイルに関しては、列挙する原稿ファイルに日本語が使われていないので Shift-JIS のままでも問題ありません。
+�@���e�e�L�X�g�t�@�C���̕��я��� SECTIONS �t�@�C���ɏ������݂܂��B���̃t�@�C���Ɋւ��ẮA�񋓂��錴�e�t�@�C���ɓ��{�ꂪ�g���Ă��Ȃ��̂� Shift-JIS �̂܂܂ł���肠��܂���B
 
     file1.txt
     file2.txt
 
-　のように一行にひとつのファイル名をページ順に列挙してください。
+�@�̂悤�Ɉ�s�ɂЂƂ̃t�@�C�������y�[�W���ɗ񋓂��Ă��������B
 
-　sample.yaml ファイルを開き、書名や著者名など必要な情報を書き換え、ファイル名も生成する図書にあわせた名前に適宜変更してください。このファイルも utf-8 で保存してください。ファイル名は半角英数を使用してください。
-
-
-４．テキストデイジー図書を作成する
-
-　準備が整ったら、作業フォルダにおいた rdmconsole.bat をダブルクリックします。
-
-　コマンドラインコンソールが起動するので、「 rdm 」と入力し、リターンします。問題がなければ作業フォルダの中に .yaml ファイルのベースネーム（先の例では sample ）をつけたフォルダを作成し、その中に図書データを生成します。
-
-　万一記法などに不備があった場合には、コンソールにエラーメッセージが表示されます。該当するファイル名と行数、タグ名などが表示されるので、それを参考に修正したうえで、再度「 rdm 」を実行してください。
-
-　なお、エラーの発生した行数はおよそのものであり、数行程度の誤差が生じることがあります。
+�@sample.yaml �t�@�C�����J���A�����⒘�Җ��ȂǕK�v�ȏ������������A�t�@�C��������������}���ɂ��킹�����O�ɓK�X�ύX���Ă��������B���̃t�@�C���� utf-8 �ŕۑ����Ă��������B�t�@�C�����͔��p�p�����g�p���Ă��������B
 
 
-５．デイジーバリデーション
+�S�D�e�L�X�g�f�C�W�[�}�����쐬����
 
-　RDM 自体ではバリデーション機能を持っていません。デイジーコンソーシアムのサイトから Pipeline ( GUI 版）をダウンロードし使用してください。
+�@��������������A��ƃt�H���_�ɂ����� rdmconsole.bat ���_�u���N���b�N���܂��B
+
+�@�R�}���h���C���R���\�[�����N������̂ŁA�u rdm �v�Ɠ��͂��A���^�[�����܂��B��肪�Ȃ���΍�ƃt�H���_�̒��� .yaml �t�@�C���̃x�[�X�l�[���i��̗�ł� sample �j�������t�H���_���쐬���A���̒��ɐ}���f�[�^�𐶐����܂��B
+
+�@����L�@�Ȃǂɕs�����������ꍇ�ɂ́A�R���\�[���ɃG���[���b�Z�[�W���\������܂��B�Y������t�@�C�����ƍs���A�^�O���Ȃǂ��\�������̂ŁA������Q�l�ɏC�����������ŁA�ēx�u rdm �v�����s���Ă��������B
+
+�@�Ȃ��A�G���[�̔��������s���͂��悻�̂��̂ł���A���s���x�̌덷�������邱�Ƃ�����܂��B
 
 
-６．ライセンスについて
+�T�D�f�C�W�[�o���f�[�V����
 
-　RDM は２条項 BSD ライセンスで公開します。
+�@RDM ���̂ł̓o���f�[�V�����@�\�������Ă��܂���B�f�C�W�[�R���\�[�V�A���̃T�C�g���� Pipeline ( GUI �Łj���_�E�����[�h���g�p���Ă��������B
+
+
+�U�D���C�Z���X�ɂ���
+
+�@RDM �͂Q���� BSD ���C�Z���X�Ō��J���܂��B
 

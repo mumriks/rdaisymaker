@@ -79,6 +79,7 @@ MODIFY_LIST = %Q[<select name="modify" onchange="modify">
    <option value="7">ルビ（青空文庫形式）
    <option value="72">ルビ（青空文庫形式）範囲付き
    <option value="8">ルビ（ReVIEW 形式）
+   <option value="9">日付
 </select>]
 QUOTE_LIST = %Q[<select name="quote" onchange="quote">
    <option value="0" selected>なし
@@ -439,6 +440,9 @@ def modify
       when '8'
          s.text = "@<ruby>{#{s.text},（ルビ）}"
          show "ルビタグ（ReVIEW形式）を設定しました。正しいルビに置き換えてください"
+      when '9'
+         s.text = "@<date>{#{s.text}}"
+         show "日付タグを設定しました。EPUB3 縦書きの作成で有効になります"
       end
    else
       rangeAlert(@window.document.all('modify'))

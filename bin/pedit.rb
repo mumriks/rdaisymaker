@@ -335,6 +335,11 @@ def modify_(line, reg, modify)
    end
 end
 
+#def modify1(line, reg, modify, str)
+#   line.sub!(/#{reg}/, "")
+#   line.sub!(str, "@<#{modify}>{#{str}}")
+#end
+
 def modify2(line, reg, modify, str)
    line.sub!(/#{reg}/, "@<#{modify}>{#{str}}")
 end
@@ -548,7 +553,7 @@ def check_ruby(line)
    noruby = []
    while m = /｜?(#{@kanji}*#{@kanji}+)《([^《]+)》#{@kana}*/.match(line2)
       @druby[$1] = $2 if @params["ruby_cache"]
-      rubyarea = $&; befourstr = m.pre_match
+      rubyarea = $&; befourstr = m.pre_match #$`
       unless befourstr == ""
          lineArray << befourstr
          noruby << num
@@ -612,6 +617,7 @@ def split_reading(str, reading)
 end
 
 def addRuby(line)
+#   return line if /[!-~]/ =~ line ##
    lineArray, noruby = check_ruby(line)
    tagger = @model.createTagger()
    noruby.each {|num|
@@ -764,6 +770,7 @@ def main
       puts "SECTIONS ファイルがありません。"
    end
    @logfile.close if @params["log"]
+#   @druby.each {|key, yomi| puts "#{key}, #{yomi}" }
 end
 
 main

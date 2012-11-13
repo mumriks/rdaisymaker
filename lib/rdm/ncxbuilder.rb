@@ -13,16 +13,14 @@ class Daisy
       @maxPage = 0
       @ncxnotetype = []
       @ncxnote = []
-#      note = Hash.new(0)
-#      noteref = {}
       self.book.each {|chapter|
          chapter.sections.each {|section|
             section.phrases.each {|phr|
-               if phr.instance_of?(Headline)
+               if headlineSentence?(phr) or doctitleSentence?(phr)
                   navid += 1
                   phr.readid = navid
                   @headlines << phr
-                  @depth = phr.args.to_i if @depth < phr.args.to_i
+                  @depth = phr.arg.to_i if @depth < phr.arg.to_i
                elsif phr.kind_of?(Page)
                   navid += 1
                   phr.readid = navid
@@ -31,80 +29,29 @@ class Daisy
                   if phr.instance_of?(Normal)
                      @maxPage = phr.cut_kana.to_i if @maxPage < phr.cut_kana.to_i
                   end
-=begin
-               elsif phr.instance_of?(Noteref)
-                  navid += 1
-                  phr.readid = navid
-                  note[phr.args] = navid + 1
-                  navid = navid + 1
-                  noteref[phr.args] = '1'
-                  @ncxnotetype << phr.namedowncase
-                  @ncxnote << phr
-               elsif phr.instance_of?(Note)
-                  unless noteref[phr.args] == nil
-                     phr.readid = note[phr.args]
-                     note[phr.args] += 1
-                     @ncxnotetype << phr.namedowncase
-                     @ncxnote << phr
-                  else
+               elsif phr.kind_of?(Footnote)
+                  unless %r!/! =~ phr.tag
                      navid += 1
-                     phr.readid = navid
+                     phr.navid = navid
                      @ncxnotetype << phr.namedowncase
                      @ncxnote << phr
                   end
-=end
-=begin
-               elsif phr.instance_of?(Noteref)
-# not need Noteref ?
-#                  navid += 1
-#                  phr.readid = navid
-#                  @ncxnotetype << phr.namedowncase
-#                  @ncxnote << phr
-                  p = phr
-                  until p.child.nil?
-                     navid += 1
-                     p.child.readid = navid
-#                     @ncxnotetype << p.child.namedowncase
-#                     @ncxnote << p.child
-                     p = p.child
-                  end
-#                  phr.child.readid = navid
-# end of (not need Noteref ?)
-=end
-               elsif phr.kind_of?(NoteGroup) #phr.instance_of?(Note)
-                  navid += 1
-                  phr.readid = navid
-                  @ncxnotetype << phr.namedowncase
-                  @ncxnote << phr
-=begin
-               elsif prod?(phr) or anno?(phr) or side?(phr)
-                  navid += 1
-                  phr.readid = navid
-                  @ncxnotetype << phr.namedowncase
-                  @ncxnote << phr
-=end
                end
             }
          }
       }
-      @ncxnotetype = @ncxnotetype.uniq
+      @ncxnotetype.uniq!
    end
 
-   private
-
-   def prod?(phr)
-      phr.instance_of?(Prodnote)
+   def headlineSentence?(phr)
+      phr.instance_of?(Headline::Sentence)
    end
-   def anno?(phr)
-      phr.instance_of?(Annotation)
+   def doctitleSentence?(phr)
+      phr.instance_of?(Title::Sentence)
    end
-   def side?(phr)
-      phr.instance_of?(Sidebar)
-   end
-
 end
 
-class TEXTDaisy
+class Daisy3
 
    def build_ncx_header
       @nf.puts <<EOT
@@ -135,8 +82,20 @@ EOT
   <docTitle>
     <text>#{@meta.title}</text>
   </docTitle>
+EOT
+      if @meta.author.kind_of?(Array)
+         @meta.author.each {|a|
+            print_docauthor(a)
+         }
+      else
+         print_docauthor(@meta.author)
+      end
+   end
+
+   def print_docauthor(name)
+      @nf.puts <<EOT
   <docAuthor>
-    <text>#{@meta.author}</text>
+    <text>#{name}</text>
   </docAuthor>
 EOT
    end
@@ -161,8 +120,8 @@ EOT
 
    def build_ncx_navmap(phr)
       navid = "nav#{zerosuplement(phr.readid, 5)}"
-      pIndent = 2 + phr.args * 2
-      @nf.puts(indent(%Q[<navPoint id="#{navid}" playOrder="#{phr.readid}" class="level#{phr.args}">], pIndent))
+      pIndent = 2 + phr.arg * 2
+      @nf.puts(indent(%Q[<navPoint id="#{navid}" playOrder="#{phr.readid}" class="level#{phr.arg}">], pIndent))
       @nf.puts(indent(%Q[<navLabel>], pIndent + 2))
       @nf.puts(indent(%Q[<text>#{phr.phrase}</text>], pIndent + 4))
       @nf.puts(indent(%Q[</navLabel>], pIndent + 2))
@@ -172,6 +131,15 @@ EOT
    def build_ncx_navmap_navpoint_post(level)
       pIndent = 2 + level * 2
       @nf.puts(indent("</navPoint>", pIndent))
+   end
+
+   def build_ncx_navmap_navpoint_downto_post(level)
+      if 1 < level
+         (level - 1).downto(1) {|l|
+            pIndent = 2 + l * 2
+            @nf.puts(indent("</navPoint>", pIndent))
+         }
+      end
    end
 
    def build_ncx_pagelist_pre
@@ -200,12 +168,20 @@ EOT
    end
 
    def build_ncx_navlist_pre(type)
+      label = set_navLabel(type)
       @nf.puts <<EOT
   <navList id="#{type}-navList" class="#{type}">
     <navLabel>
-      <text>#{type}</text>
+      <text>#{label}</text>
     </navLabel>
 EOT
+   end
+
+   def set_navLabel(type)
+      return LABEL_NOTE if 'note' == type
+      return LABEL_PROD if 'prodnote' == type
+      return LABEL_ANNO if 'annotation' == type
+      return LABEL_SIDE if 'sidebar' == type
    end
 
    def build_ncx_navlist_post
@@ -214,21 +190,26 @@ EOT
 EOT
    end
 
-   def build_ncx_navlist(phr, num) # add 'num'
-      navid = "nav#{zerosuplement(phr.readid, 5)}"
+   def build_ncx_navlist(phr, num)
+      navid = "nav#{zerosuplement(phr.navid, 5)}"
+      ncxsrc = phr.ncxsrc.ncxsrc
+      num = phr.ref if note_with_ref?(phr)
+      if phr.ncxsrc.instance_of?(Sidebar::Caption)
+         num = phr.ncxsrc.phrase
+      end
       @nf.puts <<EOT
-    <navTarget id="#{navid}" class="#{phr.namedowncase}" playOrder="#{phr.readid}">
+    <navTarget id="#{navid}" class="#{phr.namedowncase}" playOrder="#{phr.navid}">
       <navLabel>
         <text>#{num}</text>
       </navLabel>
-      <content src="#{phr.ncxsrc}" />
+      <content src="#{ncxsrc}" />
     </navTarget>
 EOT
    end
 
 end
 
-class TEXTDaisy4
+class Daisy4
 
    def build_nav_header
       stylesheetStr = alternate_stylesheet("nav")

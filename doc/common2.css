@@ -1,4 +1,4 @@
-/* ------------------------------------------------------------ */
+ï»¿/* ------------------------------------------------------------ */
 /* dtbook.2005.basic.css 
 
    Created  10-13-1999 by M. Moodie from M. Hakkinen's template
@@ -611,8 +611,13 @@ span[class="small-caps"] {
 } 
 
 /* ===================== */
-/*    ƒCƒ“ƒfƒ“ƒg’Ç‰Á     */
+/* å‚ç‚¹ã€ã‚¤ãƒ³ãƒ‡ãƒ³ãƒˆè¿½åŠ   */
 /* ===================== */
+
+span[class="sesame_dot"] {
+    padding: 7px 0 0;
+    background: url(boten2.png) no-repeat;
+}
 
 [class="indent_1"] { margin-left: 1em }
 [class="indent_2"] { margin-left: 2em }

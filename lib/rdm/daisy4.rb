@@ -1,31 +1,56 @@
 # encoding: utf-8
 # Copyright (c) 2012 Kishida Atsushi
 #
-
 class TEXTDaisy4 < Daisy4
-
-   JAR = File.join(BINDIR, "../lib/rdm/epubcheck/epubcheck-3.0b5.jar")
-
    def initialize(values)
       super
       @xmeta.multimediaType = "textstream"
+      @xmeta.multimediaContent = "text"
       @meta.format = "EPUB3"
    end
-   attr_accessor :datevih
+end
+class AudioFullTextDaisy4 < Daisy4
+   def initialize(values)
+      super
+      @xmeta.multimediaType = "audioFullText"
+      @xmeta.multimediaContent = "audio,text"
+      @meta.format = "EPUB3"
+      @audio_list = []
+   end
+   attr_accessor :audio_list
+
+   def copy_audio_file(file, dstname)
+      Dir.mkdir(@a_path) unless File.exist?(@a_path)
+      FileUtils.cp(file, "#{@a_path}/#{dstname}")
+      @audio_list << "#{@a_path}/#{dstname}"
+   end
+
+   def check_audio_file(file)
+      disk_name = check_strict_exist?(file)
+      extname = File.extname(disk_name)
+      basename = File.basename(disk_name, ".*")
+      return 'errmes5', file unless Daisy::FT_AUDIO =~ extname.downcase
+      ext, extname = extname_unmatch?(extname)
+      base, basename = basename_unmatch?(basename, extname)
+      if ext or base
+         puts "'#{disk_name}' のファイル名を '#{basename}#{extname}' に変更しました。"
+      end
+      copy_audio_file(file, "#{basename}#{extname}")
+      return nil, "#{basename}#{extname}"
+   end
+end
+
+class Daisy4
+   attr_accessor :datevih, :i_path, :a_path
 
    def build_cover(file)
-      em = {"errmes1" => "[cover]画像ファイルが指定されていません",
-            "errmes2" => "[cover]そのファイルは見つかりません : ",
-            "errmes3" => "[cover]サポートされていない画像タイプです : ",
-            "errmes4" => "[cover]画像が大きすぎるようです"}
-
       File.open("#{@c_path}/cover.xhtml", "w:UTF-8") {|xf|
          @xfile = xf
          File.open(file, "r:UTF-8") {|f|
             f.each_line {|line|
                mes, @cover_image = check_imagefile(line.chomp)
                if /errmes[1-3]/ =~ mes
-                  print_error("#{em[mes]} #{@cover_image}")
+                  print_error("[cover]#{Daisy::ERRMES[mes]} #{@cover_image}")
                end
                File.rename("#{@i_path}/#{line.chomp}", "#{@i_path}/#{@cover_image}")
                cover_page(@cover_image)
@@ -34,15 +59,13 @@ class TEXTDaisy4 < Daisy4
          }
       }
    end
+
    def build_daisy
       build_xhtml_smil()
-   end
-   def build_ncx
       build_text_nav()
-   end
-   def build_opf
       build_text_opf()
    end
+
    def mk_temp(temp)
       @temp = temp
       @m_path = "#{@temp}/#{@bookname}/META-INF"
@@ -50,10 +73,12 @@ class TEXTDaisy4 < Daisy4
       @s_path = "#{@temp}/#{@bookname}/Publication/Styles"
       @c_path = "#{@temp}/#{@bookname}/Publication/Content"
       @p_path = "#{@temp}/#{@bookname}/Publication"
-      [@m_path, @s_path, @c_path].each {|path|
+      @a_path = "#{@temp}/#{@bookname}/Publication/Audios"
+      [@m_path, @s_path, @c_path, @a_path].each {|path|
          FileUtils.mkdir_p(path)
       }
    end
+
    def copy_files
       ["horizontal", "vertical"].each {|type|
          distpath = "#{@s_path}/#{type}.css"
@@ -69,31 +94,16 @@ class TEXTDaisy4 < Daisy4
       build_other_file()
       build_epub3()
    end
-   def copy_image(image, dstname)
-      FileUtils.mkdir_p(@i_path) unless File.exist?(@i_path)
-      FileUtils.cp(image, "#{@i_path}/#{dstname}")
-   end
-   def check_imagefile(image)
-      return 'errmes2', image unless File.exist?(image)
-      basename = File.basename(image, ".*")
-      extname = File.extname(image)
-      return 'errmes3', image unless /\.jpe*g|\.png/ =~ extname
-      extname = '.jpg' if '.jpeg' == extname
-      width, height = get_image_size(image)
-      copy_image(image, "#{basename}#{extname}")
-      return 'errmes4',image unless IMGHEIGHT >= height
-      return 'errmes4',image unless IMGWIDTH >= width
-      return nil, "#{basename}#{extname}"
-   end
 
    private
 
    def build_xhtml_smil
       @chapcount = 0
       @sectcount = 0
+      index = 0
       @m_indent = false
       self.book.each {|chapter|
-         @level = 1
+         @@start_level, @@befour_level, @@level = nil, nil, nil
          @chapcount += 1
          @tnum = 0
          xhtmlfile = "#{@c_path}/#{PTK}#{self.zerosuplement(@chapcount, 5)}.xhtml"
@@ -106,25 +116,45 @@ class TEXTDaisy4 < Daisy4
                File.open(smilfile, "w:UTF-8") {|sf|
                   @sfile = sf
                   section.phrases.each {|phr|
-                     unless phr.instance_of?(ImageGroup) or phr.instance_of?(Quote)
-                        phr.phrase = compile_daisy_ruby(phr.phrase)
-                        phr.phrase = compile_inline_tag(phr.phrase)
+                     if phr.kind_of?(Phrase)
+                        unless phr.phrase.kind_of?(Array)
+                           phr.phrase = compile_daisy_ruby(phr.phrase)
+                           phr.phrase = compile_inline_tag(phr.phrase)
+                           phr.unify_period
+                        end
                      end
-                     phr.unify_period
                      phr.compile_xml(self)
                   }
                   smil_header()
+                if @daisy2
+                     readphr = {}
+                     section.phrases.each {|phr|
+                        if phr.kind_of?(Phrase)
+                           readphr[phr.readid] = phr unless phr.readid.nil?
+                        end
+                     }
+                     pars = []
+                     @seqs[index].item.each {|par|
+                        pars << par if par.text.instance_of?(Smil::Text)
+                     }
+                     pars.each {|p|
+                        phr = readphr[p.text.id]
+                        phr.compile_smil(self) unless phr.nil?
+                     }
+                else
                   readphr = []
                   section.phrases.each {|phr|
-                     unless phr.readid == nil
-                        readphr << phr
+                     if phr.kind_of?(Phrase)
+                        readphr << phr unless phr.readid == nil
                      end
                   }
                   readphr.sort_by{|p| p.readid}.each {|phr|
                      phr.compile_smil(self)
                   }
+                end
                   smil_footer()
                }
+               index += 1
             }
             xml_footer()
          }
@@ -138,36 +168,40 @@ class TEXTDaisy4 < Daisy4
          @nf = nf
          build_nav_header()
          build_nav_pre()
-         level = 0
+         level = 0; section = 0
          indent = 6
          @headlines.each_with_index {|h, i|
             h.adjust_ncx
             if 0 == i
                build_nav_section_root_pre(indent + 3)
                build_nav_headline(h, indent + 6)
-               level = h.args
+               level = h.arg
                indent += 6
-            elsif level < h.args
+            elsif level < h.arg
                build_nav_section_root_pre(indent + 3)
                build_nav_headline(h, indent + 6)
-               level = h.args
+               level = h.arg
                indent += 6
-            elsif level == h.args
+            elsif level == h.arg
                build_nav_list_post(indent)
                build_nav_headline(h, indent)
-            elsif level > h.args
-               build_nav_list_post(indent)
-               build_nav_section_root_post(indent - 3)
-               build_nav_list_post(indent - 6)
-               build_nav_headline(h, indent - 6)
-               level = h.args
-               indent -= 6
+            elsif level > h.arg
+               (level - h.arg).times {|l|
+                  build_nav_list_post(indent)
+                  build_nav_section_root_post(indent - 3)
+                  indent -= 6
+               }
+               indent += 3
+               build_nav_list_post(indent - 3)
+               build_nav_headline(h, indent - 3)
+               level = h.arg
+               indent -= 3
             end
             if @headlines[i + 1].nil?
                (level).times {|l|
                   build_nav_list_post(indent)
                   build_nav_section_root_post(indent - 3)
-                  indent -= 6
+                  indent -= 3
                }
             end
          }
@@ -224,15 +258,24 @@ class TEXTDaisy4 < Daisy4
          }
 
          unless @cover_image.nil?
-            type = check_img_type(@cover_image)
+            type = check_file_type(@cover_image)
             idstr = "cover#{File.extname(@cover_image)}"
             build_cover_item(type, idstr, "Images/#{@cover_image}")
          end
+         @img_list.uniq!
          if 0 < @img_list.size
             @img_list.each {|img|
-               type = check_img_type(img)
-               build_manifest_item(type, "item_#{num}", "Images/#{img}")
+               type = check_file_type(img)
+               build_manifest_item(type, "item_#{num}", "#{img}")
                num = num + 1
+            }
+         end
+         @audio_list.uniq! if @audio_list
+         if @audio_list and 0 < @audio_list.size
+            @audio_list.each {|audio_file|
+               type = check_file_type(audio_file)
+               build_manifest_item(type, "misc#{num}", "#{audio_file}")
+               num += 1
             }
          end
 
@@ -252,12 +295,7 @@ class TEXTDaisy4 < Daisy4
    def build_other_file
       build_container()
    end
-   def build_mimetype
-      mimetype = "#{@temp}/#{@bookname}/mimetype"
-      File.open(mimetype, "w:UTF-8"){|f|
-         f.print("application/epub+zip")
-      }
-   end
+
    def build_container
       container = "#{@m_path}/container.xml"
       File.open(container, "w:UTF-8"){|f|
@@ -283,7 +321,8 @@ EOT
       Zip::ZipFile.open("#{@bookname}.epub", Zip::ZipFile::CREATE) {|zf|
          zf.add("META-INF/container.xml", "META-INF/container.xml")
          ["Publication/Images/*", "Publication/Content/*",
-          "Publication/Styles/*", "Publication/*"].each {|dir|
+          "Publication/Styles/*", "Publication/*",
+          "Publication/Audios/*"].each {|dir|
             Dir.glob(dir).each {|path|
                unless File.directory?(path)
                   zf.add(path, path)
@@ -295,18 +334,22 @@ EOT
       FileUtils.mv("#{@temp}/#{@bookname}/#{@bookname}.epub", "#{@bookname}.epub")
       epub3check()
    end
+
    def epub3check
-      if File.exist?(JAR)
-         puts "EPUB3 をチェックします・・・"
-         exec "java -jar #{JAR} #{@bookname}.epub"
-      else
-         puts "EPUB3 CHECK プログラムがみつかりません。"
-      end
+      jarfile = find_epubcheck()
+      puts "EPUB3 をチェックします・・・"
+      exec "java -jar #{jarfile} #{@bookname}.epub"
    end
 
-   def print_error(errmes)
-      raise errmes.encode("SJIS")
-      exit 1
+   def find_epubcheck
+      epubjar = Dir.glob(File.join(BINDIR, "../lib/rdm/epubcheck/epubcheck-3*"))
+      if 0 == epubjar.size
+         print_error("epubcheckファイルが見つかりません")
+      elsif 1 < epubjar.size
+         print_error("複数のepubcheckファイルがあります。ひとつにしてください")
+      elsif 1 == epubjar.size
+         return File.expand_path(epubjar[0])
+      end
    end
 
 end

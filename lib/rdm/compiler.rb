@@ -3,8 +3,6 @@
 #
 
 class Daisy
-   @paragraph_print = false
-   @normal_print = false
    @indent = 0
 
    ZENKIGOU = Regexp.new("[！”＃＄％＆’※（）＝～｜￥「」＜＞｛｝【】『』〔〕≪≫〈〉［］―…・；：＋＊－／＠‘　、。]")
@@ -18,15 +16,37 @@ class Daisy
       sprintf("%0#{place}d", fig)
    end
 
-   def compile_paragraph
-      if @normal_print
-         @xindent = @xindent - 2
-         @xfile.puts(indent(%Q[</p>], @xindent))
-         @normal_print = false
-      else
-         @xfile.puts(indent(%Q[<p />], @xindent))
+   def compile_paragraph(phr)
+      if @header
+         @header = false
+         if 2 == phr.arg
+            @xfile.puts(indent("<p />", @xindent))
+         elsif 2 < phr.arg
+            (phr.arg - 1).times { @xfile.puts(indent("<p />", @xindent)) }
+         end
+      elsif @ptag
+         @ptag = false
+         @xindent -= 2
+         if 2 > phr.arg
+            @xfile.puts(indent("</p>", @xindent))
+         elsif 2 == phr.arg
+            @xfile.puts(indent("</p>", @xindent))
+            @xfile.puts(indent("<p />", @xindent))
+         elsif 2 < phr.arg
+            @xfile.puts(indent("</p>", @xindent))
+            (phr.arg - 2).times { @xfile.puts(indent("<p />", @xindent)) }
+         end
+      elsif !@header and !@ptag
+         if 2 == phr.arg
+            @xfile.puts(indent("<p />", @xindent))
+         elsif 2 < phr.arg
+            (phr.arg - 1).times { @xfile.puts(indent("<p />", @xindent)) }
+         end
       end
-      @paragraph_print = true
+   end
+
+   def compile_plain_tag(phr)
+      @xfile.puts(indent("<#{phr.tag}>", @xindent))
    end
 
    def compile_daisy_ruby(str)
@@ -78,11 +98,6 @@ class Daisy
             tag = tag_vih(args)
          when '<date>'
             tag = tag_date(args)
-         when '<indent>'
-            tag = tag_indent(args)
-            if "err" == tag
-               print_error("記法が違っているようです : \n#{str}")
-            end
          else
             print_error("未定義のインラインタグです : \n#{str}")
          end
@@ -113,26 +128,27 @@ class Daisy
       "<sub>#{args}</sub>"
    end
 
-   def compile_indent(args)
-      if /\Ax[1-9]?|\A[1-9]/ =~ args
-         @xfile.puts(indent(%Q[<div class="indent_#{args}">], @xindent))
+   def compile_indent(tag)
+      if /\Ax[1-9]?|\A[1-9]/ =~ tag.indent
+         if @ptag
+            @xindent -= 2
+            @xfile.puts(indent("</p>", @xindent))
+            @ptag = false
+         end
+         @xfile.puts(indent(%Q[<div class="indent_#{tag.indent}">], @xindent))
          @xindent += 2
-      elsif /-/ =~ args
+      elsif /-/ =~ tag.indent
          @m_indent = true
-      elsif "end" == args
-         if @normal_print
-            if @m_indent
-               @xfile.puts(indent("</p>", @xindent - 2))
-               @xindent -= 2
-               @m_indent = false
-            else
-               @xfile.puts(indent("</p>", @xindent - 2))
-               @xfile.puts(indent("</div>", @xindent - 4))
-               @xindent -= 4
-            end
-            @normal_print = false
-         else
+      elsif tag.terminal
+         @xindent -= 2
+         if @m_indent
             @xfile.puts(indent("</div>", @xindent))
+            @m_indent = false
+         elsif @ptag
+            @xfile.puts(indent("</p>", @xindent))
+            @xfile.puts(indent("</div>", @xindent - 2))
+            @xindent -= 2
+            @ptag = false
          end
       end
    end
@@ -144,50 +160,59 @@ class Daisy
    end
 
    def check_paragraph
-      if @paragraph_print
-         if @m_indent
-            @xfile.puts(indent(%Q[<p class="indent_-1">], @xindent))
-         else
-            @xfile.puts(indent("<p>", @xindent))
+      unless @header
+         unless @ptag
+            if @m_indent
+               @xfile.puts(indent(%Q[<p class="indent_-1">], @xindent))
+            else
+               @xfile.puts(indent("<p>", @xindent))
+            end
+            @xindent += 2
+            @ptag = true
          end
-         @paragraph_print = false
-         @xindent = @xindent + 2
       end
    end
 
-   def table_sentence(phr, smilstr, idstr)
-      @xfile.puts(indent(%Q[<#{phr.tag}>], @xindent + 4))
-      @xfile.puts(indent(%Q[<sent id="#{idstr}" smilref="#{smilstr}">#{phr.phrase}</sent>], @xindent + 6))
-      @xfile.puts(indent(%Q[</#{phr.tag}>], @xindent + 4))
-   end
-
-   def compile_table_id(args)
+   def compile_table_id(arg)
       smilnum = zerosuplement(@sectcount, 5)
-      @table_id += 1
-      tableid = args
-      tabref = "#{PTK}#{smilnum}.smil#tab#{tableid}"
+      tabref = "#{PTK}#{smilnum}.smil#es#{arg}"
       return tabref
    end
 
    def set_smil_num(phr)
       unless phr.readid == nil
+        if @daisy2
+            phrnum = phr.readid
+            tnum = phr.totalid
+        else
          phrnum = zerosuplement(phr.readid, 5)
          tnum = zerosuplement(phr.totalid, 7)
+        end
       end
       xmlfilename = File.basename(@xfile)
       return xmlfilename, phrnum, tnum
    end
 
-   def table_par(phr)
-      xmlfilename, phrnum, tnum = set_smil_num(phr)
-      @sfile.puts(indent(%Q[<par id="phr#{phrnum}">], @indent + 2))
-      @sfile.puts(indent(%Q[<text src="#{xmlfilename}#t#{tnum}" />], @indent + 4))
-      @sfile.puts(indent(%Q[</par>], @indent + 2))
+   def footnote_sentence?(phr)
+      return true if phr.instance_of?(Note::Sentence)
+      return true if phr.instance_of?(Annotation::Sentence)
+      return true if phr.instance_of?(Prodnote::Sentence)
+      return true if phr.instance_of?(Sidebar::Caption)
+      return true if phr.instance_of?(Sidebar::Sentence)
+      return false
    end
 
-   def print_error(errmes)
-      raise errmes
-      exit 1
+   def list_sentence?(phr)
+      return true if phr.instance_of?(Li::Sentence)
+      return true if phr.instance_of?(Dt::Sentence)
+      return true if phr.instance_of?(Dd::Sentence)
+      return false
+   end
+
+   def note_with_ref?(phr)
+      return true if phr.instance_of?(Note) and !phr.ref.nil?
+      return true if phr.instance_of?(Annotation) and !phr.ref.nil?
+      return false
    end
 
 end

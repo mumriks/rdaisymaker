@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 
 <!--******************************
        DAISY XSL TRANSFORM
@@ -21,6 +21,12 @@ xmlns:dtb="http://www.daisy.org/z3986/2005/dtbook/">
     </xsl:attribute>
   </xsl:attribute-set>
 
+  <xsl:attribute-set name="sesameDotStyle">
+    <xsl:attribute name="style">
+      padding: 7px 0 0;
+      background: url(boten2.png) no-repeat;
+    </xsl:attribute>
+  </xsl:attribute-set>
   <xsl:attribute-set name="indent1Style">
     <xsl:attribute name="style">
       margin-left: 1em
@@ -725,14 +731,6 @@ xmlns:dtb="http://www.daisy.org/z3986/2005/dtbook/">
   <xsl:template match="dtb:div">
 
     <xsl:choose>
-      <xsl:when test="@class='indent_-1'">
-        <xsl:element name="div" use-attribute-sets="indentMStyle">
-          <xsl:attribute name="class">
-            <xsl:value-of select="@class" />
-          </xsl:attribute>
-          <xsl:apply-templates />
-        </xsl:element>
-      </xsl:when>
       <xsl:when test="@class='indent_1'">
         <xsl:element name="div" use-attribute-sets="indent1Style">
           <xsl:attribute name="class">
@@ -1290,6 +1288,16 @@ xmlns:dtb="http://www.daisy.org/z3986/2005/dtbook/">
           <xsl:apply-templates/>
         </rp>
       </xsl:when>
+
+      <xsl:when test="@class='sesame_dot'">
+        <xsl:element name="span" use-attribute-sets="sesameDotStyle">
+          <xsl:attribute name="class">
+            <xsl:value-of select="@class" />
+          </xsl:attribute>
+          <xsl:apply-templates/>
+        </xsl:element>
+      </xsl:when>
+
       <xsl:otherwise>
         <span>
           <xsl:apply-templates/>

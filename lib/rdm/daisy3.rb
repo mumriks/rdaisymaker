@@ -7,28 +7,68 @@ class TEXTDaisy < Daisy3
       super
       @xmeta.multimediaType = "textNCX"
       @xmeta.multimediaContent = "text"
-      @xmeta.totalElapsedTime = "0:00:00.000"
+      @xmeta.totalElapsedTime = @xmeta.totalTime = "0:00:00.000"
       @meta.format = "ANSI/NISO Z39.86-2005"
       @sesame = false
    end
-   attr_accessor :sesame, :yomi
+end
 
+class AudioFullTextDaisy3 < Daisy3
+   def initialize(values = nil)
+      super
+      @xmeta.multimediaType = "audioFullText"
+      @xmeta.multimediaContent = "audio,text"
+      @meta.format = "ANSI/NISO Z39.86-2005"
+      @sesame = false
+      @audio_list = []
+   end
+   attr_accessor :audio_list
+
+   def copy_audio_file(file, dstname)
+      unless File.exist?(@a_path)
+         Dir.mkdir(@a_path)
+      end
+      FileUtils.cp(file, "#{@a_path}/#{dstname}")
+      @audio_list << "Audios/#{dstname}"
+   end
+
+   def check_audio_file(file)
+      disk_name = check_strict_exist?(file)
+      extname = File.extname(disk_name)
+      basename = File.basename(disk_name, ".*")
+      return 'errmes5', file unless Daisy::FT_AUDIO =~ extname.downcase
+      ext, extname = extname_unmatch?(extname)
+      base, basename = basename_unmatch?(basename, extname)
+      if ext or base
+         puts "'#{disk_name}' のファイル名を '#{basename}#{extname}' に変更しました。"
+      end
+      copy_audio_file(file, "#{basename}#{extname}")
+      return nil, "#{basename}#{extname}"
+   end
+end
+
+class TEXT < TEXTDaisy
+end
+
+class Daisy3
+   attr_accessor :sesame, :yomi, :i_path, :a_path
    def build_cover(file)
       return
    end
+
    def build_daisy
       build_xml_smil()
-   end
-   def build_ncx
       build_text_ncx()
-   end
-   def build_opf
       build_text_opf()
    end
+
    def mk_temp(temp)
       @temp = temp
       FileUtils.mkdir_p("#{@temp}/#{@bookname}")
+      @i_path = "#{@temp}/#{@bookname}/Images"
+      @a_path = "#{@temp}/#{@bookname}/Audios"
    end
+
    def copy_files
       FileUtils.cp_r("#{@temp}/#{@bookname}/", "./") unless "." == @temp
       dtdfile = %w(dtbook-2005-3.dtd dtbsmil-2005-2.dtd ncx-2005-1.dtd oeb12.ent oebpkg12.dtd resource-2005-1.dtd)
@@ -36,48 +76,27 @@ class TEXTDaisy < Daisy3
          distpath = "#{@bookname}/#{f}"
          FileUtils.cp(File.join(BINDIR, "../doc/#{f}"), distpath)
       }
+      if @sesame
+         fnames = {".css" => "common2.css", ".res" => "common.res",
+                   ".xsl" => "common2.xsl"}
+         FileUtils.cp(File.join(BINDIR, "../doc/boten2.png"), "#{@bookname}/boten2.png")
+      else
+         fnames = {".css" => "common.css", ".res" => "common.res",
+                   ".xsl" => "common.xsl"}
+      end
       [".css", ".res", ".xsl"].each {|ext|
         distpath = "#{@bookname}/#{@bookname}#{ext}"
-        FileUtils.cp(File.join(BINDIR, "../doc/common#{ext}"), distpath)
+        FileUtils.cp(File.join(BINDIR, "../doc/#{fnames[ext]}"), distpath)
       }
-      FileUtils.cp(File.join(BINDIR, "../doc/boten2.png"), "#{@bookname}/boten2.png") if @sesame
    end
-   def copy_image(image, dstname)
-      unless File.exist?("#{@temp}/#{@bookname}/Images")
-         Dir.mkdir("#{@temp}/#{@bookname}/Images")
-      end
-      FileUtils.cp(image, "#{@temp}/#{@bookname}/Images/#{dstname}")
-   end
-
-   def check_imagefile(image)
-      return 'errmes2', image unless File.exist?(image)
-      extname = File.extname(image)
-      basename = File.basename(image, ".*")
-      return 'errmes3', image unless /\.jpe*g|\.png/ =~ extname
-      extname = '.jpg' if '.jpeg' == extname
-      if /[^A-Za-z0-9]+/ =~ basename
-         bn = basename.gsub(/[^A-Za-z0-9]+/, '')
-         bn = bn + 'aa' if File.exist?("#{bn}#{extname}")
-         while File.exist?("#{bn}#{extname}")
-            bn = bn.succ
-         end
-         basename = bn
-         puts "'#{image}' のファイル名を '#{basename}#{extname}' に変更しました。"
-      end
-      width, height = get_image_size(image)
-      copy_image(image, "#{basename}#{extname}")
-      return 'errmes4', "#{basename}#{extname}" unless IMGHEIGHT >= height
-      return 'errmes4', "#{basename}#{extname}" unless IMGWIDTH >= width
-      return nil, "#{basename}#{extname}"
-   end
-
-   private
 
    def build_xml_smil
       @chapcount = 0
       @sectcount = 0
+      index = 0
+      customTest = false
       self.book.each {|chapter|
-         @level = 1
+         @@start_level, @@befour_level, @@level = nil, nil, nil
          @chapcount += 1
          @tnum = 0
          xmlfile = "#{@temp}/#{self.bookname}/#{PTK}#{self.zerosuplement(@chapcount, 5)}.xml"
@@ -90,25 +109,45 @@ class TEXTDaisy < Daisy3
                File.open(smilfile, "w:UTF-8") {|sf|
                   @sfile = sf
                   section.phrases.each {|phr|
-                     unless phr.instance_of?(ImageGroup) or phr.instance_of?(Quote)
-                        phr.phrase = compile_daisy_ruby(phr.phrase)
-                        phr.phrase = compile_inline_tag(phr.phrase)
+                     if phr.kind_of?(Phrase)
+                        unless phr.phrase.kind_of?(Array)
+                           phr.phrase = compile_daisy_ruby(phr.phrase)
+                           phr.phrase = compile_inline_tag(phr.phrase)
+                           phr.unify_period
+                        end
                      end
-                     phr.unify_period
                      phr.compile_xml(self)
                   }
                   smil_header()
-                  readphr = []
-                  section.phrases.each {|phr|
-                     unless phr.readid == nil
-                        readphr << phr
-                     end
-                  }
-                  readphr.sort_by{|p| p.readid}.each {|phr|
-                     phr.compile_smil(self)
-                  }
+                  if @daisy2
+                     readphr = {}
+                     section.phrases.each {|phr|
+                        if phr.kind_of?(Phrase)
+                           readphr[phr.readid] = phr unless phr.readid.nil?
+                        end
+                     }
+                     pars = []
+                     @seqs[index].item.each {|par|
+                        pars << par if par.text.instance_of?(Smil::Text)
+                     }
+                     pars.each {|p|
+                        phr = readphr[p.text.id]
+                        phr.compile_smil(self)
+                     }
+                  else
+                     readphr = []
+                     section.phrases.each {|phr|
+                        if phr.kind_of?(Phrase)
+                           readphr << phr unless phr.readid == nil
+                        end
+                     }
+                     readphr.sort_by{|p| p.readid}.each {|phr|
+                        phr.compile_smil(self)
+                     }
+                  end
                   smil_footer()
                }
+               index += 1
             }
             xml_footer()
          }
@@ -127,26 +166,28 @@ class TEXTDaisy < Daisy3
             h.adjust_ncx
             build_ncx_navmap(h)
             unless @headlines[i + 1] == nil
-               if h.args >= @headlines[i + 1].args
-                  s = h.args
-                  e = @headlines[i + 1].args
+               if h.arg >= @headlines[i + 1].arg
+                  s = h.arg
+                  e = @headlines[i + 1].arg
                   s.downto(e) {|l|
                      build_ncx_navmap_navpoint_post(l)
                   }
                end
             else
-               build_ncx_navmap_navpoint_post(h.args)
+               build_ncx_navmap_navpoint_post(h.arg)
             end
+            @harg = h.arg
          }
+         build_ncx_navmap_navpoint_downto_post(@harg)
          build_ncx_navmap_post()
          unless 0 == @pages.size
             build_ncx_pagelist_pre()
-            @pages.each {|n|
-               if /normal|front|special/ =~ n.namedowncase
-                  self.build_ncx_pagelist(n)
-               end
+            ['front', 'normal', 'special'].each {|t|
+               @pages.each {|pg|
+                  build_ncx_pagelist(pg) if t == pg.namedowncase
+               }
             }
-            self.build_ncx_pagelist_post()
+            build_ncx_pagelist_post()
          end
          unless 0 == @ncxnotetype.size
             @ncxnotetype.each {|t|
@@ -173,11 +214,20 @@ class TEXTDaisy < Daisy3
          build_opf_manifest_pre()
          build_opf_etc_manifest()
          num = 3
+         @img_list.uniq!
          if 0 < @img_list.size
             @img_list.each {|img|
-               type = check_img_type(img)
-               build_manifest_item(type, "misc#{num}", "Images/#{img}")
+               type = check_file_type(img)
+               build_manifest_item(type, "misc#{num}", "#{img}")
                num = num + 1
+            }
+         end
+         @audio_list.uniq! if @audio_list
+         if @audio_list and 0 < @audio_list.size
+            @audio_list.each {|audio_file|
+               type = check_file_type(audio_file)
+               build_manifest_item(type, "misc#{num}", "#{audio_file}")
+               num += 1
             }
          end
 
@@ -213,4 +263,5 @@ class TEXTDaisy < Daisy3
          build_opf_package_post()
       }
    end
+
 end

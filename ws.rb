@@ -35,3 +35,10 @@ File.open("#{bindir}/rdm.bat", "w"){|f|
 @ruby #{bindir}/rdaisymaker.rb %*
 EOT
 }
+
+File.open("#{bindir}/rd2.bat", "w"){|f|
+   f.puts <<EOT
+@rem R Daisy2.02 Exchanger 起動バッチファイル
+@ruby #{bindir}/rdaisy202.rb %*
+EOT
+}

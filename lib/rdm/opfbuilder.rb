@@ -41,20 +41,27 @@ EOT
 EOT
    end
 
-   def check_img_type(img)
+   def check_file_type(img)
       extname = File.extname(img)
       if '.jpg' == extname
          type = "image/jpeg"
       elsif '.png' == extname
          type = "image/png"
+      elsif '.svg' == extname
+         type = "image/svg+xml"
+      elsif '.mp4' == extname
+         type = "audio/mpeg4-generic"
+      elsif '.mp3' == extname
+         type = "audio/mpeg"
       end
       type
    end
 end
 
-class TEXTDaisy
+class Daisy3
 
    def build_opf_meta
+      totalTime = makeTotalTime()
       @of.puts <<EOT
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE package PUBLIC "+//ISBN 0-9673008-1-9//DTD OEB 1.2 Package//EN" "oebpkg12.dtd">
@@ -68,22 +75,40 @@ class TEXTDaisy
          <dc:Language>#{@meta.language}</dc:Language>
          <dc:Identifier id="uid">#{@meta.iUid}</dc:Identifier>
          <dc:Identifier scheme="ISBN">#{@meta.isbn}</dc:Identifier>
-         <dc:Creator role="author">#{@meta.author}</dc:Creator>
 EOT
 
-      print_contributor("trl", "translator") unless @meta.translator.nil?
-      print_contributor("edt", "editor") unless @meta.editor.nil?
-      print_contributor("ill", "illustlator") unless @meta.illustlator.nil?
-      print_contributor("pht", "photographer") unless @meta.photographer.nil?
+      printAuthor(@meta.author)
+      [[@meta.translator, "trl"],
+       [@meta.editor, "edt"],
+       [@meta.illustlator, "ill"],
+       [@meta.photographer, "pht"],
+       [@contributor,]].each {|name, rolestr|
+         printContributor(name, rolestr) if name
+      }
 
       @of.puts <<EOT
       </dc-metadata>
       <x-metadata>
-         <meta name="dtb:sourceDate" content="#{@xmeta.sourceDate}" />
-         <meta name="dtb:sourcePublisher" content="#{@xmeta.sourcePublisher}" />
+EOT
+      [["sourceDate", @xmeta.sourceDate],
+       ["sourceEdition", @xmeta.sourceEdition],
+       ["sourcePublisher", @xmeta.sourcePublisher],
+       ["sourceRights", @xmeta.sourceRights],
+       ["sourceTitle", @xmeta.sourceTitle],
+       ["narrator", @xmeta.narrator],
+       ["producer", @xmeta.producer],
+       ["producedDate", @xmeta.producedDate],
+       ["revision", @xmeta.revision],
+       ["revisionDate", @xmeta.revisionDate],
+       ["revisionDescription", @xmeta.revisionDescription],
+       ["audioFormat", @xmeta.audioFormat]].each {|word, name|
+          printXmeta(word, name) if name
+       }
+      
+      @of.puts <<EOT
          <meta name="dtb:multimediaType" content="#{@xmeta.multimediaType}" />
          <meta name="dtb:multimediaContent" content="#{@xmeta.multimediaContent}" />
-         <meta name="dtb:totalTime" content="#{@xmeta.totalElapsedTime}" />
+         <meta name="dtb:totalTime" content="#{totalTime}" />
       </x-metadata>
    </metadata>
 EOT
@@ -107,15 +132,60 @@ EOT
 
    private
 
-   def print_contributor(rolestr, metastr)
-      m = eval "@meta.#{metastr}"
+   def makeTotalTime
+      if @daisy2 and 'audioFullText' == @xmeta.multimediaType
+         totalTime = calc_totalTime()
+      else
+         totalTime = @xmeta.totalTime
+      end
+      return totalTime
+   end
+
+   def printAuthor(name)
+      if name.kind_of?(Array)
+         name.each {|a| creatorWithRole(a, "author") }
+      else
+         creatorWithRole(name, "author")
+      end
+   end
+
+   def creatorWithRole(name, rolestr)
       @of.puts <<EOT
-         <dc:Contributor role="#{rolestr}">#{m}</dc:Contributor>
+         <dc:Creator role="#{rolestr}">#{name}</dc:Creator>
 EOT
    end
+
+   def printContributor(name, rolestr = nil)
+      if name.kind_of?(Array)
+         name.each {|am|
+            contributorWithRole(am, rolestr)
+         }
+      else
+         contributorWithRole(name, rolestr)
+      end
+   end
+
+   def contributorWithRole(name, rolestr)
+      if rolestr.nil?
+         @of.puts <<EOT
+         <dc:Contributor>#{name}</dc:Contributor>
+EOT
+      else
+         @of.puts <<EOT
+         <dc:Contributor role="#{rolestr}">#{name}</dc:Contributor>
+EOT
+      end
+   end
+
+   def printXmeta(name, content)
+      @of.puts <<EOT
+         <meta name="dtb:#{name}" content="#{content}" />
+EOT
+   end
+
 end
 
-class TEXTDaisy4
+class Daisy4
 
    def build_opf_header
       @of.puts <<EOT
@@ -125,17 +195,18 @@ class TEXTDaisy4
          unique-identifier="pub-id" version="3.0">
 EOT
    end
-# dir="#{@meta.pageDirection}"
 
    def build_opf_meta
       t = Time.now
       modifiedDate = %Q[#{t.strftime("%Y-%m-%dT%H:%M:%SZ")}]
+      date = @xmeta.sourceDate #
+      date = @meta.date if date.nil? #
       @of.puts <<EOT
    <opf:metadata xmlns:opf="http://www.idpf.org/2007/opf">
       <dc:identifier id="pub-id">urn:uuid:#{@meta.iUid}</dc:identifier>
       <dc:title id="title">#{@meta.title}</dc:title>
       <dc:language>#{@meta.language}</dc:language>
-      <dc:date id="date">#{@xmeta.sourceDate}</dc:date>
+      <dc:date id="date">#{date}</dc:date>
       <dc:format>#{@meta.format}</dc:format>
 EOT
       roleid = 1
@@ -146,8 +217,15 @@ EOT
        ["photographer","pht"]].each {|role, r|
          name = eval("@meta.#{role}")
          unless name.nil?
+           if name.kind_of?(Array)
+              name.each {|n|
+                 print_contributor(roleid, n, r)
+                 roleid += 1
+              }
+           else
             print_contributor(roleid, name, r)
             roleid += 1
+           end
          end
       }
       @of.puts <<EOT
