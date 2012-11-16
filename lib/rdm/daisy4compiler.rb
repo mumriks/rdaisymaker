@@ -89,10 +89,10 @@ EOT
 
    def print_sentence(phr)
       idstr = compile_id(phr)
-      phr.cut_front_space
+      phrase = Phrase::cut_front_space(phr.phrase)
       if /\A</ =~ phr.phrase
          @xfile.puts(indent(%Q[<span id="#{idstr}">], @xindent))
-         @xfile.puts(indent("#{phr.phrase}", @xindent + 2))
+         @xfile.puts(indent("#{phrase}", @xindent + 2))
          @xfile.puts(indent("</span>", @xindent))
       else
          @xfile.puts(indent(%Q[<span id="#{idstr}">#{phr.phrase}</span>], @xindent))
@@ -363,13 +363,13 @@ EOT
    def compile_smil_customtest(phr)
       print_seq_pre(phr) unless @customTest
       compile_smil_text(phr)
-      print_seq_post(phr) if  /-E/ =~ phr.arg or phr.child.nil?
+      print_seq_post(phr) if  /-E/ =~ phr.arg
    end
 
    def compile_smil_list(phr)
       print_seq_pre(phr) unless @customTest
       compile_smil_text(phr)
-      print_seq_post(phr) if 'end' == phr.arg
+      print_seq_post(phr) if /-E/ =~ phr.arg
    end
 
    def compile_smil_table(phr)

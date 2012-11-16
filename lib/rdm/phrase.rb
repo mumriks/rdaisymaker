@@ -44,25 +44,31 @@ class Phrase
       "#{self.class}".downcase
    end
 
-   def cut_ruby
+   def cut_ruby(phrase)
       rubyreg = Regexp.new(%Q!<span class="(?:rp|rt)">[^<]+<\/span>!)
-      @phrase.gsub!(rubyreg, "") if rubyreg =~ @phrase
+      phrase.gsub(rubyreg, "") if rubyreg =~ phrase
+      return phrase
    end
-   def cut_xml_tag
-      @phrase.gsub!(/<[^<]+>/, "") if /<[^<]+>/ =~ @phrase
+   def cut_xml_tag(phrase)
+      phrase.gsub(/<[^<]+>/, "") if /<[^<]+>/ =~ phrase
+      return phrase
    end
-   def cut_front_space
-      @phrase.gsub!(/\A[\s　]+/, "") if /\A[\s　]+/ =~ @phrase
+   def self.cut_front_space(phrase)
+      phrase.gsub!(/\A[\s　]+/, "") if /\A[\s　]+/ =~ phrase
+      return phrase
    end
    def self.exchange_entity(str)
       case str
       when /&copy;/
-         str.gsub!(/&copy;/, "(c)")
+         str.gsub!(/&copy;/, "Ⓒ")
+      when /&iota;/
+         str.gsub!(/&iota;/, "Ι")
       end
       return str
    end
 
    def cut_headmark
+
       case @arg
       when 'ul'
          reg = Regexp.new("^[*・]\s+")
@@ -151,7 +157,7 @@ end
 
 class Headline < Tag
    class Sentence < Phrase
-      attr_accessor :ncxsrc
+      attr_accessor :ncxsrc, :navstr
       def compile_xml(daisy)
          daisy.compile_text(self)
       end
@@ -159,17 +165,19 @@ class Headline < Tag
          daisy.compile_smil_headline(self)
       end
 
-      def adjust_ncx
-         cut_ruby()
-         cut_xml_tag()
-         cut_front_space()
+      def set_navstr(navstr = nil)
+         if navstr.nil?
+            @navstr = Phrase::cut_front_space(cut_xml_tag(cut_ruby(@phrase)))
+         else
+            @navstr = navstr
+         end
       end
    end
 end
 
 class Title < Headline
    class Sentence < Phrase
-      attr_accessor :ncxsrc
+      attr_accessor :ncxsrc, :navstr
       def compile_xml(daisy)
          daisy.compile_text(self)
       end
@@ -177,10 +185,12 @@ class Title < Headline
          daisy.compile_smil_headline(self)
       end
 
-      def adjust_ncx
-         cut_ruby()
-         cut_xml_tag()
-         cut_front_space()
+      def set_navstr(navstr = nil)
+         if navstr.nil?
+            @navstr = Phrase::cut_front_space(cut_xml_tag(cut_ruby(@phrase)))
+         else
+            @navstr = navstr
+         end
       end
    end
 end

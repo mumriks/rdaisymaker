@@ -91,15 +91,14 @@ class Daisy3
    end
 
    def build_xml_smil
-      @chapcount = 0
+      chapcount = 0
       @sectcount = 0
       index = 0
       customTest = false
       self.book.each {|chapter|
          @@start_level, @@befour_level, @@level = nil, nil, nil
-         @chapcount += 1
-         @tnum = 0
-         xmlfile = "#{@temp}/#{self.bookname}/#{PTK}#{self.zerosuplement(@chapcount, 5)}.xml"
+         chapcount += 1
+         xmlfile = "#{@temp}/#{self.bookname}/#{PTK}#{self.zerosuplement(chapcount, 5)}.xml"
          File.open(xmlfile, "w:UTF-8") {|xf|
             @xfile = xf
             xml_header()
@@ -163,7 +162,6 @@ class Daisy3
          build_ncx_meta()
          build_ncx_navmap_pre()
          @headlines.each_with_index {|h, i|
-            h.adjust_ncx
             build_ncx_navmap(h)
             unless @headlines[i + 1] == nil
                if h.arg >= @headlines[i + 1].arg

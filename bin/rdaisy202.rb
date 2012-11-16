@@ -177,6 +177,9 @@ def check_audio_files
 end
 
 def exchangeToDaisy3over
+   unless @debug.nil?
+      puts "デバッグモードで実行しています。\n"
+   end
    case @params["type"]
    when 'textNCX'
       @daisy.xmeta.totalTime = "0:00:00.000"

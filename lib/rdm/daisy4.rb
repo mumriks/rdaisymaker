@@ -98,15 +98,14 @@ class Daisy4
    private
 
    def build_xhtml_smil
-      @chapcount = 0
+      chapcount = 0
       @sectcount = 0
       index = 0
       @m_indent = false
       self.book.each {|chapter|
          @@start_level, @@befour_level, @@level = nil, nil, nil
-         @chapcount += 1
-         @tnum = 0
-         xhtmlfile = "#{@c_path}/#{PTK}#{self.zerosuplement(@chapcount, 5)}.xhtml"
+         chapcount += 1
+         xhtmlfile = "#{@c_path}/#{PTK}#{self.zerosuplement(chapcount, 5)}.xhtml"
          File.open(xhtmlfile, "w:UTF-8") {|xf|
             @xfile = xf
             xml_header()
@@ -171,7 +170,6 @@ class Daisy4
          level = 0; section = 0
          indent = 6
          @headlines.each_with_index {|h, i|
-            h.adjust_ncx
             if 0 == i
                build_nav_section_root_pre(indent + 3)
                build_nav_headline(h, indent + 6)

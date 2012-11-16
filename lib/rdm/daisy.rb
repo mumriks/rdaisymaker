@@ -28,7 +28,7 @@ class Daisy
    IMGWIDTH = 550
    IMGHEIGHT = 400
    ERRMES = {"errmes1" => "画像ファイルが指定されていません ",
-             "errmes2" => "そのファイルは見つかりません : ",
+             "errmes2" => "ファイルが見つかりません : ",
              "errmes3" => "サポートされていない画像タイプです : ",
              "errmes5" => "サポートされていない audio タイプです : "}
    LABEL_NOTE = '注釈'
@@ -54,14 +54,15 @@ class Daisy
          disk_name = File.strict_exist_name?(file)
          return 'errmes2', file unless disk_name
          puts "'#{file}' の実際のファイル名は '#{disk_name}' です。"
-         return disk_name
+         return nil, disk_name
       else
-         return file
+         return nil, file
       end
    end
 
    def check_imagefile(file)
-      disk_name = check_strict_exist?(file)
+      mes, disk_name = check_strict_exist?(file)
+      return mes, disk_name unless mes.nil?
       extname = File.extname(disk_name)
       basename = File.basename(disk_name, ".*")
       return 'errmes3', file unless Daisy::FT_IMAGE =~ extname.downcase

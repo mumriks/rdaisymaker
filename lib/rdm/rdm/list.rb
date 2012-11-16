@@ -49,7 +49,7 @@ class RDM
    def make_dd(phr, id = nil)
       objs = []
       if id
-         objs << make_sentence(phr, "Dd::Sentence", "end")
+         objs << make_sentence(phr, "Dd::Sentence", id)
       else
          objs << make_sentence(phr, "Dd::Sentence")
       end

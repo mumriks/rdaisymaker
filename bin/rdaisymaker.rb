@@ -105,6 +105,12 @@ end
 def make_headline(phr)
    arg = phr.slice(/=+/).size
    phr2 = phr.sub(/=+\s/, '')
+   if /@<navi>{([^}]+)}/ =~ phr2
+      navstr = $1
+      phr2.sub!(/@<navi>{[^}]+}/, "")
+   else
+      navstr = nil
+   end
    if /\A@<indent>{([^,]+),([^{]+)}/ =~ phr2
       indent = $1
       phr2 = $2
@@ -112,6 +118,7 @@ def make_headline(phr)
    h = Headline.new(arg, indent) if Headline.valid_args?(arg, indent)
    print_error(level_mes(phr)) unless h
    hs = @rdm.make_sentence(phr2, 'Headline::Sentence', arg)
+   hs.set_navstr(navstr)
    new_chapter() if arg == 1
    new_section()
    return [h, hs, h.dup.post]
@@ -337,7 +344,7 @@ def image_block(phr, args)
          @rdm.not_page_in_image
       else
          if img.instance_of?(Image)
-            if File.exist?(p)
+            if Daisy::FT_IMAGE =~ p
                mes, image = @daisy.check_imagefile(p)
                img = @rdm.make_image(mes, image, args)
                img.width, img.height = set_image_size("#{@daisy.i_path}/#{image}")
@@ -642,6 +649,9 @@ def main
       yamlfile = ARGV[0].nil? ? yamls[0] : ARGV[0]
       values = YAML.load_file(yamlfile)
       debug = values["debug"]
+      unless debug.nil?
+         puts "デバッグモードで実行しています。\n"
+      end
 
       values["multimediaType"] = @params["type"] unless @params["type"].nil?
       values["pagedirection"] = @params["pagedirection"] unless @params["pagedirection"].nil?

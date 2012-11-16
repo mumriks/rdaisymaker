@@ -123,7 +123,7 @@ EOT
       pIndent = 2 + phr.arg * 2
       @nf.puts(indent(%Q[<navPoint id="#{navid}" playOrder="#{phr.readid}" class="level#{phr.arg}">], pIndent))
       @nf.puts(indent(%Q[<navLabel>], pIndent + 2))
-      @nf.puts(indent(%Q[<text>#{phr.phrase}</text>], pIndent + 4))
+     @nf.puts(indent(%Q[<text>#{phr.navstr}</text>], pIndent + 4))
       @nf.puts(indent(%Q[</navLabel>], pIndent + 2))
       @nf.puts(indent(%Q[<content src="#{phr.ncxsrc}" />], pIndent + 2))
    end

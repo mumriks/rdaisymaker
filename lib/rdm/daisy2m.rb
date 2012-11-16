@@ -318,6 +318,7 @@ module Daisy2
          s = eval "Sentence.new(phrase, @@temp[1])"
       elsif "Headline" == @@temp[0] or "Title" == @@temp[0]
          s = eval "#{@@temp[0]}::Sentence.new(phrase, @@level)"
+         s.set_navstr()
       else
          arg = @@temp[1]
          arg = "nt#{@@id}" if 'Note' == @@temp[0]

@@ -50,33 +50,6 @@ class RDM
       return objs
    end
 
-   def inline_image_tag(phr)
-      if /\A@<img>([^{]+){([^}]+)}\z/ =~ phr
-         group = []
-         args = $1; phrase = $2
-         args = parse_inline_args(args)
-         file = phrase.split(/,/)
-         if File.exist?(file[0])
-            mes, image = @daisy.check_imagefile(file[0])
-            img = make_image(mes, image, args)
-            group << img
-            img.alt = file[1].gsub(/《[^》]+》/, "") if file[1]
-            return make_image_group(group, args)
-         end
-      else
-         mes = "タグの文法が違うようです : #{phr}\n#{File.basename(@file)} line:#{lineno}"
-         print_error(mes)
-      end
-   end
-   def parse_inline_args(args)
-      unless args[0,1] == '[' and args[-1,1] == ']'
-         mes = "引数の文法が違うようです : #{args}\n#{File.basename(@file)} line:#{lineno}"
-         print_error(mes)
-         return []
-      end
-      args[1..-2].split('][', -1)
-   end
-
    def valid_syntax_at_image?(phr)
       phr.flatten!
       if phr[0].instance_of?(Prodnote)

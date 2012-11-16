@@ -114,10 +114,10 @@ EOT
    def print_sentence(phr)
       smilstr, idstr = compile_id(phr)
       phr.ncxsrc = smilstr
-      phr.cut_front_space
+      phrase = Phrase::cut_front_space(phr.phrase)
       if /\A</ =~ phr.phrase
          @xfile.puts(indent(%Q[<sent id="#{idstr}" smilref="#{smilstr}">], @xindent))
-         @xfile.puts(indent(%Q[#{phr.phrase}], @xindent + 2))
+         @xfile.puts(indent(%Q[#{phrase}], @xindent + 2))
          @xfile.puts(indent(%Q[</sent>], @xindent))
       else
          @xfile.puts(indent(%Q[<sent id="#{idstr}" smilref="#{smilstr}">#{phr.phrase}</sent>], @xindent))
