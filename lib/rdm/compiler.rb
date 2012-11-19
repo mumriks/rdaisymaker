@@ -149,6 +149,8 @@ class Daisy
             @xfile.puts(indent("</div>", @xindent - 2))
             @xindent -= 2
             @ptag = false
+         else
+            @xfile.puts(indent("</div>", @xindent))
          end
       end
    end

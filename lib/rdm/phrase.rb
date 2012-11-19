@@ -46,11 +46,13 @@ class Phrase
 
    def cut_ruby(phrase)
       rubyreg = Regexp.new(%Q!<span class="(?:rp|rt)">[^<]+<\/span>!)
-      phrase.gsub(rubyreg, "") if rubyreg =~ phrase
+      rubyreg2 = Regexp.new("《[^》]+》")
+      phrase.gsub!(rubyreg, "") if rubyreg =~ phrase
+      phrase.gsub!(rubyreg2, "") if rubyreg2 =~ phrase
       return phrase
    end
    def cut_xml_tag(phrase)
-      phrase.gsub(/<[^<]+>/, "") if /<[^<]+>/ =~ phrase
+      phrase.gsub!(/<[^<]+>/, "") if /<[^<]+>/ =~ phrase
       return phrase
    end
    def self.cut_front_space(phrase)
@@ -67,9 +69,8 @@ class Phrase
       return str
    end
 
-   def cut_headmark
-
-      case @arg
+   def self.cut_headmark(phrase, enum)
+      case enum
       when 'ul'
          reg = Regexp.new("^[*・]\s+")
       when '1'
@@ -85,7 +86,8 @@ class Phrase
       when ':'
          reg = Regexp.new("^:\s+")
       end
-      @phrase.sub!(reg, "") if reg
+      phrase.sub!(reg, "") if reg
+      return phrase
    end
 end
 
@@ -311,10 +313,6 @@ end
 
 class Li < List
    class Sentence < Phrase
-      def initialize(phrase, arg = nil)
-         super
-         cut_headmark()
-      end
       attr_accessor :ncxsrc
       def compile_xml(daisy)
          daisy.compile_text(self)
@@ -327,10 +325,6 @@ end
 
 class Dt < Dl
    class Sentence < Phrase
-      def initialize(phrase, arg = nil)
-         super
-         cut_headmark()
-      end
       attr_accessor :ncxsrc
       def compile_xml(daisy)
          daisy.compile_text(self)
@@ -343,9 +337,6 @@ end
 
 class Dd < Dl
    class Sentence < Phrase
-      def initialize(phrase, arg = nil)
-         super
-      end
       attr_accessor :ncxsrc
       def compile_xml(daisy)
          daisy.compile_text(self)
