@@ -95,7 +95,7 @@ EOT
          @xfile.puts(indent("#{phrase}", @xindent + 2))
          @xfile.puts(indent("</span>", @xindent))
       else
-         @xfile.puts(indent(%Q[<span id="#{idstr}">#{phr.phrase}</span>], @xindent))
+         @xfile.puts(indent(%Q[<span id="#{idstr}">#{phrase}</span>], @xindent))
       end
    end
 
@@ -218,7 +218,7 @@ EOT
       end
    end
    def compile_sidebar_caption(phr)
-      @xfile.puts(indent("<header>", @xindent))
+      @xfile.puts(indent(%Q[<header id="#{phr.arg}">], @xindent))
       print_caption(phr)
       @xfile.puts(indent("</header>", @xindent))
    end
@@ -305,10 +305,6 @@ EOT
       if %r!\A/! =~ phr.tag
          @xindent -= 2
          @xfile.puts(indent("<#{phr.tag}>", @xindent))
-         unless @ptag
-            @xfile.puts(indent("<p>", @xindent - 2))
-            @ptag = true
-         end
       else
          if @ptag
             @xfile.puts(indent("</p>", @xindent - 2))
@@ -363,7 +359,7 @@ EOT
    def compile_smil_customtest(phr)
       print_seq_pre(phr) unless @customTest
       compile_smil_text(phr)
-      print_seq_post(phr) if  /-E/ =~ phr.arg
+      print_seq_post(phr) if /-E/ =~ phr.arg
    end
 
    def compile_smil_list(phr)
@@ -390,7 +386,7 @@ EOT
       elsif list_sentence?(phr)
          type = "list"
       else
-         type = phr.namedowncase.sub(/::sentence/, "")
+         type = phr.namedowncase.sub(/::sentence|::caption/, "")
       end
       id = phr.arg.sub(/-.+/, "")
       return id, type
@@ -405,11 +401,29 @@ EOT
    def compile_smil_image(phr)
    end
 
-   def tag_vih(args)
-      if "rtl" == @meta.pageDirection
-         return %Q[<span class="vih">#{args}</span>]
-      elsif "ltr" == @meta.pageDirection
-         return args
+   def compile_plain_tag(phr)
+      make_div_tag(phr) if @hivColophon
+   end
+
+   def make_div_tag(phr)
+      if /horizontal|colophon/ =~ phr.style and 'div' == phr.tag
+         @xfile.puts(indent(%Q[<div class="horizontal">], @xindent))
+         @horizontal = true
+         @xindent += 2
+      elsif %r!/! =~ phr.tag
+         if @ptag
+            @xindent -= 4
+            @xfile.puts(indent("</p>", @xindent + 2))
+            @xfile.puts(indent("<#{phr.tag}>", @xindent))
+            @ptag, @@horizontal = false, false
+         else
+            @xindent -= 2
+            @xfile.puts(indent("<#{phr.tag}>", @xindent))
+            @horizontal = false
+         end
+      else
+         @xfile.puts(indent("<#{phr.tag}>", @xindent))
+         @xindent += 2
       end
    end
 
@@ -439,26 +453,88 @@ EOT
          puts mes
       end
       if /\A[yY]/ =~ r
-         r.sub!(/\A[yY]/, "")
-         tag = %Q[<span speak:ph="#{r}">#{k}</span>]
-#        tag = %Q[<s ssml:ph="#{r}">#{k}</s>] #? <span ssml:ph> is not bound
+         unless @yomi
+            return tag = k if /\A[yY]/ =~ r
+         else
+            r.sub!(/\A[yY]/, "")
+            return %Q[<span speak:ph="#{r}">#{k}</span>]
+#           return %Q[<s ssml:ph="#{r}">#{k}</s>] #? <span ssml:ph> is not bound
+         end
       else
-         tag = %Q!<ruby>#{k}<rp>（</rp><rt>#{r}</rt><rp>）</rp></ruby>!
+         return %Q!<ruby>#{k}<rp>（</rp><rt>#{r}</rt><rp>）</rp></ruby>!
       end
    end
 
+   def tag_vertical(args)
+      if "rtl" == @meta.pageDirection and !@horizontal
+         return make_vertical_single(args)
+      else
+         return args
+      end
+   end
+
+   def tag_hiv(args)
+      if "rtl" == @meta.pageDirection and !@horizontal
+         return make_vertical_tag(args) if HIVSIZE < args.size
+         return %Q[<span class="hiv">#{args}</span>]
+      else
+         return args
+      end
+   end
+
+   def make_vertical_tag(args)
+      tag = ""
+      if HIVREG =~ args
+         parts = args.split(HIVREG)
+         parts.each {|ss|
+           if HIVREG =~ ss
+              if 2 == ss.size
+                 tag += %Q[<span class="hiv">#{ss}</span>]
+              else
+                 tag += make_vertical_single(ss)
+              end
+            else
+               tag += ss
+            end
+         }
+      else
+         tag = make_vertical_single(args)
+      end
+      return tag
+   end
+
+   def make_vertical_single(args)
+      tag = ""
+      strs = args.scan(/./)
+      strs.each {|s|
+         str = convert_multi(s)
+         if str.nil?
+            tag += %Q[<span class="hiv">#{s}</span>]
+         else
+            tag += str
+         end
+      }
+      return tag
+   end
+
    def tag_date(args)
-      if "rtl" == @meta.pageDirection
-         if @datevih
+      if "rtl" == @meta.pageDirection and !@horizontal
+         if @datehiv
             return %Q[<span class="date">#{args}</span>]
          else
             return make_date_tag(args)
          end
-      elsif "ltr" == @meta.pageDirection
+      else
          return args
       end
    end
+
    def make_date_tag(args)
+      while %r!([-/aAdDbBcC])! =~ args
+         match = $1
+         after = convert_multi(match)
+         args = args.sub(match, after)
+      end
       strs = args.split(/(\d+)/)
       tag = ""
       strs.each {|str|
@@ -466,17 +542,18 @@ EOT
             if 2 < str.size
                ds = str.scan(/./)
                ds.each {|d|
-                  tag += %Q[<span class="vih">#{d}</span>]
+                  tag += convert_multi_date(d)
                }
             else
-               tag += %Q[<span class="vih">#{str}</span>]
+               tag += %Q[<span class="hiv">#{str}</span>]
             end
          else
             tag += str
          end
       }
-      tag
+      return tag
    end
+
    def tag_indent(args)
       if /^(x?[1-9]?|[1-9]),(.+)$/ =~ args
          num = $1

@@ -12,6 +12,44 @@ class Daisy
    KANA = Regexp.new("[#{HIRA}#{KATA}]")
    KANJI = Regexp.new("[^#{KANA}#{ZENEISU}#{ZENKIGOU}!-~\s]")
 
+   HIVSIZE = 2
+   HIVREG = /([0-9a-zA-Z.,+-]+)/
+
+   FIGTBL = {'0' => '０', '1' => '１', '2' => '２', '3' => '３', '4' => '４',
+             '5' => '５', '6' => '６', '7' => '７', '8' => '８', '9' => '９'}
+
+   ARPHTBL = {'a' => 'ａ', 'b' => 'ｂ', 'c' => 'ｃ', 'd' => 'ｄ', 'e' => 'ｅ',
+              'f' => 'ｆ', 'g' => 'ｇ', 'h' => 'ｈ', 'i' => 'ｉ', 'j' => 'ｊ',
+              'k' => 'ｋ', 'l' => 'ｌ', 'm' => 'ｍ', 'n' => 'ｎ', 'o' => 'ｏ',
+              'p' => 'ｐ', 'q' => 'ｑ', 'r' => 'ｒ', 's' => 'ｓ', 't' => 'ｔ',
+              'u' => 'ｕ', 'v' => 'ｖ', 'w' => 'ｗ', 'x' => 'ｘ', 'y' => 'ｙ',
+              'z' => 'ｚ', 'A' => 'Ａ', 'B' => 'Ｂ', 'C' => 'Ｃ', 'D' => 'Ｄ',
+              'E' => 'Ｅ', 'F' => 'Ｆ', 'G' => 'Ｇ', 'H' => 'Ｈ', 'I' => 'Ｉ',
+              'J' => 'Ｊ', 'K' => 'Ｋ', 'L' => 'Ｌ', 'M' => 'Ｍ', 'N' => 'Ｎ',
+              'O' => 'Ｏ', 'P' => 'Ｐ', 'Q' => 'Ｑ', 'R' => 'Ｒ', 'S' => 'Ｓ',
+              'T' => 'Ｔ', 'U' => 'Ｕ', 'V' => 'Ｖ', 'W' => 'Ｗ', 'X' => 'Ｘ',
+              'Y' => 'Ｙ', 'Z' => 'Ｚ'}
+
+   MARKTBL = {'.' => '．', ',' => '，', '-' => '―',
+              '_' => '＿', '!' => '！', '"' => '”', '#' => '＃', '$' => '＄',
+              '%' => '％', '&' => '＆', "'" => '’', '(' => '（', ')' => '）',
+              '=' => '＝', '~' => '～', '|' => '｜', '`' => '‘', '^' => '＾',
+              '\\' => '￥', '@' => '＠', '[' => '［', '{' => '｛', ':' => '：',
+              '*' => '＊', '+' => '＋', ';' => '；', ']' => '］', '}' => '｝',
+              '<' => '〈', '>' => '〉', '?' => '？', '/' => '／'}
+
+   def convert_multi_date(str)
+      FIGTBL[str]
+   end
+
+   def convert_multi(str)
+      tbl = {}
+      tbl.update(FIGTBL)
+      tbl.update(ARPHTBL)
+      tbl.update(MARKTBL)
+      return tbl[str]
+   end
+
    def zerosuplement(fig, place)
       sprintf("%0#{place}d", fig)
    end
@@ -45,10 +83,6 @@ class Daisy
       end
    end
 
-   def compile_plain_tag(phr)
-      @xfile.puts(indent("<#{phr.tag}>", @xindent))
-   end
-
    def compile_daisy_ruby(str)
       while /｜?(#{KANJI}+)《([^《]+)》/ =~ str
          kanji = $1
@@ -60,7 +94,7 @@ class Daisy
    end
 
    def compile_inline_tag(str)
-      while /@(<[a-z]+>){([^{]+?)}/ =~ str
+      while /@(<[a-z]+>){([^{]+)}/ =~ str
          type = $1
          args = $2
          case type
@@ -94,19 +128,21 @@ class Daisy
             tag = tag_sup(args)
          when '<sub>'
             tag = tag_sub(args)
-         when '<vih>'
-            tag = tag_vih(args)
+         when '<v>'
+            tag = tag_vertical(args)
+         when '<hiv>'
+            tag = tag_hiv(args)
          when '<date>'
             tag = tag_date(args)
          else
-            print_error("未定義のインラインタグです : \n#{str}")
+            return str, "未定義のインラインタグです : "
          end
-         str.sub!(/@#{type}\{#{args}\}/, tag)
+         str.sub!("@#{type}\{#{args}\}", tag)
       end
       if /@<\w+>/ =~ str
-         print_error("インラインタグの文法が違っているようです : \n#{str}")
+         return str, "インラインタグの文法が違っているようです : "
       end
-      str
+      return str, nil
    end
 
    def tag_italic(args)
@@ -129,17 +165,7 @@ class Daisy
    end
 
    def compile_indent(tag)
-      if /\Ax[1-9]?|\A[1-9]/ =~ tag.indent
-         if @ptag
-            @xindent -= 2
-            @xfile.puts(indent("</p>", @xindent))
-            @ptag = false
-         end
-         @xfile.puts(indent(%Q[<div class="indent_#{tag.indent}">], @xindent))
-         @xindent += 2
-      elsif /-/ =~ tag.indent
-         @m_indent = true
-      elsif tag.terminal
+      if tag.terminal
          @xindent -= 2
          if @m_indent
             @xfile.puts(indent("</div>", @xindent))
@@ -152,6 +178,35 @@ class Daisy
          else
             @xfile.puts(indent("</div>", @xindent))
          end
+      elsif /\Ax[1-9]?|\A[1-9]/ =~ tag.indent
+         if @ptag
+            @xindent -= 2
+            @xfile.puts(indent("</p>", @xindent))
+            @ptag = false
+         end
+         @xfile.puts(indent(%Q[<div class="indent_#{tag.indent}">], @xindent))
+         @xindent += 2
+      end
+      if /-/ =~ tag.indent
+         @m_indent = true
+      end
+   end
+
+   def compile_quote_indent(phr)
+      if phr.terminal
+         @xindent -= 2
+         @xfile.puts(indent("</p>", @xindent))
+         @ptag = false
+      else
+         if @m_indent
+            @m_indent = false
+         elsif @ptag
+            @xindent -= 2
+            @xfile.puts(indent("</p>", @xindent))
+         end
+         @xfile.puts(indent(%Q[<p class="indent_#{phr.indent}">], @xindent))
+         @xindent += 2
+         @ptag = true
       end
    end
 

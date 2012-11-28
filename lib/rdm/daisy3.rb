@@ -11,6 +11,10 @@ class TEXTDaisy < Daisy3
       @meta.format = "ANSI/NISO Z39.86-2005"
       @sesame = false
    end
+
+   def mk_temp(temp)
+      mk_temp_base(temp)
+   end
 end
 
 class AudioFullTextDaisy3 < Daisy3
@@ -24,6 +28,10 @@ class AudioFullTextDaisy3 < Daisy3
    end
    attr_accessor :audio_list
 
+   def mk_temp(temp)
+      mk_temp_base(temp)
+      @a_path = "#{@temp}/#{@bookname}/Audios"
+   end
    def copy_audio_file(file, dstname)
       unless File.exist?(@a_path)
          Dir.mkdir(@a_path)
@@ -33,7 +41,8 @@ class AudioFullTextDaisy3 < Daisy3
    end
 
    def check_audio_file(file)
-      disk_name = check_strict_exist?(file)
+      mes, disk_name = check_strict_exist?(file)
+      return mes, disk_name unless mes.nil?
       extname = File.extname(disk_name)
       basename = File.basename(disk_name, ".*")
       return 'errmes5', file unless Daisy::FT_AUDIO =~ extname.downcase
@@ -51,7 +60,7 @@ class TEXT < TEXTDaisy
 end
 
 class Daisy3
-   attr_accessor :sesame, :yomi, :i_path, :a_path
+   attr_accessor :sesame, :i_path, :a_path
    def build_cover(file)
       return
    end
@@ -62,11 +71,10 @@ class Daisy3
       build_text_opf()
    end
 
-   def mk_temp(temp)
+   def mk_temp_base(temp)
       @temp = temp
       FileUtils.mkdir_p("#{@temp}/#{@bookname}")
       @i_path = "#{@temp}/#{@bookname}/Images"
-      @a_path = "#{@temp}/#{@bookname}/Audios"
    end
 
    def copy_files
@@ -111,7 +119,7 @@ class Daisy3
                      if phr.kind_of?(Phrase)
                         unless phr.phrase.kind_of?(Array)
                            phr.phrase = compile_daisy_ruby(phr.phrase)
-                           phr.phrase = compile_inline_tag(phr.phrase)
+                           phr.phrase, mes = compile_inline_tag(phr.phrase)
                            phr.unify_period
                         end
                      end

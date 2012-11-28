@@ -8,6 +8,10 @@ class TEXTDaisy4 < Daisy4
       @xmeta.multimediaContent = "text"
       @meta.format = "EPUB3"
    end
+
+   def mk_temp(temp)
+      mk_temp_base(temp)
+   end
 end
 class AudioFullTextDaisy4 < Daisy4
    def initialize(values)
@@ -19,14 +23,21 @@ class AudioFullTextDaisy4 < Daisy4
    end
    attr_accessor :audio_list
 
+   def mk_temp(temp)
+      mk_temp_base(temp)
+      @a_path = "#{@temp}/#{@bookname}/Publication/Audios"
+      FileUtils.mkdir_p(@a_path)
+   end
+
    def copy_audio_file(file, dstname)
       Dir.mkdir(@a_path) unless File.exist?(@a_path)
       FileUtils.cp(file, "#{@a_path}/#{dstname}")
-      @audio_list << "#{@a_path}/#{dstname}"
+      @audio_list << dstname
    end
 
    def check_audio_file(file)
-      disk_name = check_strict_exist?(file)
+      mes, disk_name = check_strict_exist?(file)
+      return mes, disk_name unless mes.nil?
       extname = File.extname(disk_name)
       basename = File.basename(disk_name, ".*")
       return 'errmes5', file unless Daisy::FT_AUDIO =~ extname.downcase
@@ -41,7 +52,7 @@ class AudioFullTextDaisy4 < Daisy4
 end
 
 class Daisy4
-   attr_accessor :datevih, :i_path, :a_path
+   attr_accessor :datehiv, :i_path, :a_path
 
    def build_cover(file)
       File.open("#{@c_path}/cover.xhtml", "w:UTF-8") {|xf|
@@ -66,15 +77,14 @@ class Daisy4
       build_text_opf()
    end
 
-   def mk_temp(temp)
+   def mk_temp_base(temp)
       @temp = temp
       @m_path = "#{@temp}/#{@bookname}/META-INF"
       @i_path = "#{@temp}/#{@bookname}/Publication/Images"
       @s_path = "#{@temp}/#{@bookname}/Publication/Styles"
       @c_path = "#{@temp}/#{@bookname}/Publication/Content"
       @p_path = "#{@temp}/#{@bookname}/Publication"
-      @a_path = "#{@temp}/#{@bookname}/Publication/Audios"
-      [@m_path, @s_path, @c_path, @a_path].each {|path|
+      [@m_path, @s_path, @c_path].each {|path|
          FileUtils.mkdir_p(path)
       }
    end
@@ -98,14 +108,15 @@ class Daisy4
    private
 
    def build_xhtml_smil
-      chapcount = 0
+      @chapcount = 0
       @sectcount = 0
       index = 0
       @m_indent = false
       self.book.each {|chapter|
          @@start_level, @@befour_level, @@level = nil, nil, nil
-         chapcount += 1
-         xhtmlfile = "#{@c_path}/#{PTK}#{self.zerosuplement(chapcount, 5)}.xhtml"
+         @horizontal = false
+         @chapcount += 1
+         xhtmlfile = "#{@c_path}/#{PTK}#{self.zerosuplement(@chapcount, 5)}.xhtml"
          File.open(xhtmlfile, "w:UTF-8") {|xf|
             @xfile = xf
             xml_header()
@@ -118,7 +129,7 @@ class Daisy4
                      if phr.kind_of?(Phrase)
                         unless phr.phrase.kind_of?(Array)
                            phr.phrase = compile_daisy_ruby(phr.phrase)
-                           phr.phrase = compile_inline_tag(phr.phrase)
+                           phr.phrase, mes = compile_inline_tag(phr.phrase)
                            phr.unify_period
                         end
                      end
@@ -272,7 +283,7 @@ class Daisy4
          if @audio_list and 0 < @audio_list.size
             @audio_list.each {|audio_file|
                type = check_file_type(audio_file)
-               build_manifest_item(type, "misc#{num}", "#{audio_file}")
+               build_manifest_item(type, "misc#{num}", "Audios/#{audio_file}")
                num += 1
             }
          end

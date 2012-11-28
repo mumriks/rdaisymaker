@@ -24,7 +24,6 @@ class RDM
          if args[1] and @first_sentence.nil?
             objs << sidebar_caption(args[1])
          end
-         @nCount += 1
          ns = make_sentence(phr, "#{type}::Sentence", "#{args[0]}-#{num}")
          @first_sentence = ns if @first_sentence.nil?
          objs << ns

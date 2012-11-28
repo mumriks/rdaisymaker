@@ -131,6 +131,11 @@ xmlns:dtb="http://www.daisy.org/z3986/2005/dtbook/">
       text-indent: -1em;
     </xsl:attribute>
   </xsl:attribute-set>
+  <xsl:attribute-set name="border">
+    <xsl:attribute name="style">
+      border: 1px solid black
+    </xsl:attribute>
+  </xsl:attribute-set>
 
 
   <!--******************************

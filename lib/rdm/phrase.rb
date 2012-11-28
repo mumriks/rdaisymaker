@@ -47,16 +47,16 @@ class Phrase
    def cut_ruby(phrase)
       rubyreg = Regexp.new(%Q!<span class="(?:rp|rt)">[^<]+<\/span>!)
       rubyreg2 = Regexp.new("《[^》]+》")
-      phrase.gsub!(rubyreg, "") if rubyreg =~ phrase
-      phrase.gsub!(rubyreg2, "") if rubyreg2 =~ phrase
+      phrase = phrase.gsub(rubyreg, "") if rubyreg =~ phrase
+      phrase = phrase.gsub(rubyreg2, "") if rubyreg2 =~ phrase
       return phrase
    end
    def cut_xml_tag(phrase)
-      phrase.gsub!(/<[^<]+>/, "") if /<[^<]+>/ =~ phrase
+      phrase = phrase.gsub(/<[^<]+>/, "") if /<[^<]+>/ =~ phrase
       return phrase
    end
    def self.cut_front_space(phrase)
-      phrase.gsub!(/\A[\s　]+/, "") if /\A[\s　]+/ =~ phrase
+      phrase = phrase.gsub(/\A[\s　]+/, "") if /\A[\s　]+/ =~ phrase
       return phrase
    end
    def self.exchange_entity(str)
@@ -169,7 +169,8 @@ class Headline < Tag
 
       def set_navstr(navstr = nil)
          if navstr.nil?
-            @navstr = Phrase::cut_front_space(cut_xml_tag(cut_ruby(@phrase)))
+            str = @phrase
+            @navstr = Phrase::cut_front_space(cut_xml_tag(cut_ruby(str)))
          else
             @navstr = navstr
          end

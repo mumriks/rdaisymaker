@@ -10,9 +10,9 @@ html, body {
 html {
 	writing-mode: vertical-rl;
 	-webkit-writing-mode: vertical-rl;
-	-moz-writing-mode: vertical-rl;  /* 未対応 */
-	-o-writing-mode: vertical-rl;  /* 未対応 */
-	-ms-writing-mode: vertical-rl;  /* 未対応 */
+	-moz-writing-mode: vertical-rl;
+	-o-writing-mode: vertical-rl;
+	-ms-writing-mode: vertical-rl;
 	-epub-writing-mode: vertical-rl;
 }
 

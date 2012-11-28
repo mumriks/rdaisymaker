@@ -664,4 +664,6 @@ span[class="small-caps"] {
   margin-left: 3em;
   text-indent: -1em;
 }
-
+[class="border"] {
+  border: 1px solid black;
+}

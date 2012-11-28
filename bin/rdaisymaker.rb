@@ -10,14 +10,14 @@ require 'fileutils'
 require 'optparse'
 require 'tempfile'
 
-VERSION = "0.3.0"
+VERSION = "0.3.1"
 DAISYM = "R DAISY Maker ver #{VERSION}"
 DNAME = "rdm"
 PLEXTALK = "PLEXTALK DAISY Producer ver 0.2.4.0"
 PNAME = "ptk"
 @params = {"ptk" => DNAME, "generator" => DAISYM,
            "type" => nil, "pagedirection" => nil,
-           "yomi" => false, "datevih" => true}
+           "yomi" => false, "datehiv" => true, "colophon" => false}
 
 parser = OptionParser.new
 scriptfile = File.basename($0)
@@ -25,28 +25,37 @@ parser.banner = "Usage: ruby #{scriptfile} [options] config.yaml"
 parser.on('-P', 'Set generator all at PLEXTALK Producer.') {
    @params["ptk"] = PNAME
    @params["generator"] = PLEXTALK
+   puts "producer mode lite."
 }
 parser.on('-p', 'Set generator only at PLEXTALK Producer.') {
    @params["generator"] = PLEXTALK
+   puts "producer mode."
 }
-parser.on('--textncx', 'build textNCX'){
+parser.on('-3', '--to-text3', 'build textNCX'){
    @params["type"] = 'textNCX'
+   puts "テキストデイジー図書を作成します。"
 }
-parser.on('--textdaisy4', 'build textDAISY4 epub3(横組)'){
+parser.on('-4', '--to-text4', 'build textDAISY4 epub3(横組)'){
    @params["type"] = 'textDAISY4'
    @params["pagedirection"] = "ltr"
+   puts "EPUB3 図書を作成します（テキストのみ）。"
 }
-parser.on('--textdaisy4-rtl', 'build textDAISY4 epub3(縦組)'){
-   @params["type"] = 'textDAISY4'
+parser.on('--rtl', '文字組みを縦組にする (epub3)'){
    @params["pagedirection"] = "rtl"
+   puts "文字を縦組みにします。"
 }
-parser.on('--textdaisy4-rtl-date', '  epub3(縦組) 日付縦中横個別処理'){
-   @params["type"] = 'textDAISY4'
+parser.on('--rtl-date', '縦組み、日付縦中横個別処理 (epub3)'){
    @params["pagedirection"] = "rtl"
-   @params["datevih"] = false
+   @params["datehiv"] = false
+   puts "文字を縦組みにし、日付の縦中横処理を個別に行います（暫定）。"
 }
-parser.on('--yomi', '漢字に読み情報があれば設定(daisy3のみ)'){
+parser.on('-c', '--hiv-colophon', '縦組み図書に横書き指定があれば適用する'){
+   @params["colophon"] = true
+   puts "縦組み図書に横書き指定があれば適用します。"
+}
+parser.on('--yomi', '漢字に読み情報があれば設定'){
    @params["yomi"] = true
+   puts "読み情報を使用します。"
 }
 parser.on('-v', '--version', 'バージョン情報を表示') {
    puts "#{DAISYM}"
@@ -66,7 +75,6 @@ end
 
 PTK = @params["ptk"]
 GENERATOR =  @params["generator"]
-puts "producer mode." if GENERATOR == PLEXTALK
 
 BINDIR = File.dirname(File.expand_path(__FILE__))
 $LOAD_PATH << File.join(BINDIR, "../lib")
@@ -92,6 +100,10 @@ def level_mes(phr)
    "レベルが深すぎるか、インデントが不正です : #{File.basename(@rdm.file)} line:#{@rdm.lineno}\n#{phr}"
 end
 
+def no_headline
+   "見出し文字もナビ文字もありません : #{File.basename(@rdm.file)} line:#{@rdm.lineno}\n"
+end
+
 PARAGRAPH = /^[\s　]*$/
 
 def make_paragraph
@@ -102,23 +114,30 @@ def make_paragraph
    end
 end
 
+def has_navstr?(phr)
+   if /@<navi>{([^}]+)}/ =~ phr
+      navstr = $1
+      return phr.sub!(/@<navi>{[^}]+}/, ""), navstr
+   else
+      return phr, nil
+   end
+end
+
 def make_headline(phr)
    arg = phr.slice(/=+/).size
-   phr2 = phr.sub(/=+\s/, '')
-   if /@<navi>{([^}]+)}/ =~ phr2
-      navstr = $1
-      phr2.sub!(/@<navi>{[^}]+}/, "")
-   else
-      navstr = nil
-   end
-   if /\A@<indent>{([^,]+),([^{]+)}/ =~ phr2
+   phr2, navstr = has_navstr?(phr.sub(/=+\s/, ''))
+   if /\A@<indent>{([^,]+),([^}]+)}/ =~ phr2
       indent = $1
       phr2 = $2
    end
+   print_error(no_headline) if '' == phr2 and navstr.nil?
    h = Headline.new(arg, indent) if Headline.valid_args?(arg, indent)
    print_error(level_mes(phr)) unless h
    hs = @rdm.make_sentence(phr2, 'Headline::Sentence', arg)
    hs.set_navstr(navstr)
+   if @daisy.kind_of?(Daisy3)
+      hs.phrase = navstr if '' == phr2
+   end
    new_chapter() if arg == 1
    new_section()
    return [h, hs, h.dup.post]
@@ -130,8 +149,13 @@ def check_phrase_type(phrase)
    case phr
    when /\A=+[\s]/
       pr = make_paragraph()
-      objs << pr if pr
-      objs << make_headline(phr)
+      heads = make_headline(phr)
+      if @sect.phrases.empty?
+         objs << heads
+      else
+         objs << pr
+         objs << heads
+      end
    when %r<\A//\}>
       mes = "ブロックのはじまりが見つかりません : \n#{File.basename(@rdm.file)} line:#{@rdm.lineno}\n#{phr}"
       print_error(mes)
@@ -160,7 +184,8 @@ def check_phrase_type(phrase)
       pr = make_paragraph()
       objs << pr if pr
       str = phr
-      @daisy.compile_inline_tag(str)
+      str, mes = @daisy.compile_inline_tag(str)
+      print_error(mes + "#{File.basename(@rdm.file)}, line:#{@rdm.lineno}\n#{str}") unless mes.nil?
       objs << Sentence.new(phr)
    end
    @rdm.lineno += 1
@@ -225,6 +250,10 @@ def read_type(phr)
    when /\Alist\z/
       phr, args = read_phrase(phr)
       objs << list_block(phr, args)
+   when /\Ahorizontal\z/, /\Acolophon\z/
+      @@type = type
+      phr, args = read_phrase(phr)
+      objs << horizontal_block(phr, args)
    else
       mes = "未定義のタグです : //#{@type}\n#{File.basename(@rdm.file)} line:#{@rdm.lineno}\n#{phr}"
       print_error(mes)
@@ -477,7 +506,6 @@ def note_block(phr, args, type)
                if args[1] and @rdm.first_sentence.nil?
                   objs << @rdm.sidebar_caption(args[1])
                end
-               @rdm.nCount += 1
                if phr.size == i + 1
                   ns = @rdm.make_sentence(p, "#{type}::Sentence", "ps#{@rdm.nCount}-E")
                else
@@ -504,7 +532,8 @@ def modify_sentence(phr, tag)
       if PARAGRAPH =~ p
          objs << Paragraph.new.null
       else
-         str = @daisy.compile_inline_tag(p)
+         str, mes = @daisy.compile_inline_tag(p)
+         print_error(mes + "#{File.basename(@rdm.file)}, line:#{@rdm.lineno}\n#{str}") unless mes.nil?
          sent = eval ("@daisy.tag_#{tag}(str)")
          objs << @rdm.make_sentence(sent, 'Sentence')
       end
@@ -571,6 +600,22 @@ def list_block(phr, args)
    }
    objs << list.dup.post
    list.ncxsrc = @rdm.first_sentence
+   return objs
+end
+
+def horizontal_block(phr, args)
+   objs = []
+   div = Div.new
+   div.style = @@type
+   objs << div
+   phr.each {|line|
+      if line.kind_of?(Array)
+         objs << line
+      else
+         objs << check_phrase_type(line)
+      end
+   }
+   objs << div.dup.post
    return objs
 end
 
@@ -669,7 +714,9 @@ def main
          @daisy.yomi = @params["yomi"]
       when /textDAISY4/
          @daisy = TEXTDaisy4.new(values)
-         @daisy.datevih = @params["datevih"]
+         @daisy.datehiv = @params["datehiv"]
+         @daisy.hivColophon = @params["colophon"]
+         @daisy.yomi = @params["yomi"]
       when nil
          mes = "処理を終了します。
 yaml ファイルもしくは、オプションで図書タイプを指定してください。"

@@ -123,7 +123,7 @@ EOT
       pIndent = 2 + phr.arg * 2
       @nf.puts(indent(%Q[<navPoint id="#{navid}" playOrder="#{phr.readid}" class="level#{phr.arg}">], pIndent))
       @nf.puts(indent(%Q[<navLabel>], pIndent + 2))
-     @nf.puts(indent(%Q[<text>#{phr.navstr}</text>], pIndent + 4))
+      @nf.puts(indent(%Q[<text>#{phr.navstr}</text>], pIndent + 4))
       @nf.puts(indent(%Q[</navLabel>], pIndent + 2))
       @nf.puts(indent(%Q[<content src="#{phr.ncxsrc}" />], pIndent + 2))
    end
@@ -282,11 +282,7 @@ EOT
 
    def build_nav_item(phr, num)
       uri, navid = make_uri_navid(phr)
-      if "" == phr.phrase
-         @nf.puts(indent(%Q[<a href="#{uri}" id="#{navid}">　</a>], num))
-      else
-         @nf.puts(indent(%Q[<a href="#{uri}" id="#{navid}">#{phr.phrase}</a>], num))
-      end
+      @nf.puts(indent(%Q[<a href="#{uri}" id="#{navid}">#{phr.navstr}</a>], num))
    end
 
    def build_nav_item_page(phr, num)

@@ -43,7 +43,7 @@ class Headline < Tag
       @arg = arg
       @indent = indent.to_s unless indent.nil?
    end
-   attr_accessor :indent
+   attr_accessor :indent, :style
    undef null
 
    def self.valid_args?(arg, indent = nil)

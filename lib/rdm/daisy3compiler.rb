@@ -120,7 +120,7 @@ EOT
          @xfile.puts(indent(%Q[#{phrase}], @xindent + 2))
          @xfile.puts(indent(%Q[</sent>], @xindent))
       else
-         @xfile.puts(indent(%Q[<sent id="#{idstr}" smilref="#{smilstr}">#{phr.phrase}</sent>], @xindent))
+         @xfile.puts(indent(%Q[<sent id="#{idstr}" smilref="#{smilstr}">#{phrase}</sent>], @xindent))
       end
    end
 
@@ -437,6 +437,10 @@ EOT
       print_seq_post(phr) if /-E/ =~ phr.arg
    end
 
+   def compile_plain_tag(phr)
+      @xfile.puts(indent("<#{phr.tag}>", @xindent)) if @hivColophon
+   end
+
    private
 
    def compile_id(phr)
@@ -506,12 +510,11 @@ EOT
       tag = %Q!<span class="ruby">#{k}<span class="rp">（</span><span class="rt">#{r}</span><span class="rp">）</span></span>!
    end
 
-   def tag_vih(args)
+   def tag_vertical(args)
       args
    end
-   def tag_date(args)
-      args
-   end
+   alias :tag_hiv :tag_vertical
+   alias :tag_date :tag_vertical
 end
 
 class TEXTDaisy

@@ -17,7 +17,7 @@ class Daisy
       @img_list = []
    end
    attr_reader :meta, :xmeta, :book, :skippable
-   attr_accessor :bookname, :temp, :img_list
+   attr_accessor :bookname, :temp, :img_list, :yomi, :hivColophon
 
    def add_chapter(chapter)
       @book << chapter

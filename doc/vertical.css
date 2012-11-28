@@ -9,9 +9,9 @@ html {
   width: 100%;
   writing-mode: vertical-rl;
   -webkit-writing-mode: vertical-rl;
-  -moz-writing-mode: vertical-rl;  /* 未対応 */
-  -o-writing-mode: vertical-rl;  /* 未対応 */
-  -ms-writing-mode: vertical-rl;  /* 未対応 */
+  -moz-writing-mode: vertical-rl;
+  -o-writing-mode: vertical-rl;
+  -ms-writing-mode: vertical-rl;
   -epub-writing-mode: vertical-rl;
 }
 
@@ -40,9 +40,9 @@ body {
   line-height: 1.8em;
   writing-mode: vertical-rl;
   -webkit-writing-mode: vertical-rl;
-  -moz-writing-mode: vertical-rl;  /* 未対応 */
-  -o-writing-mode: vertical-rl;  /* 未対応 */
-  -ms-writing-mode: vertical-rl;  /* 未対応 */
+  -moz-writing-mode: vertical-rl;
+  -o-writing-mode: vertical-rl;
+  -ms-writing-mode: vertical-rl;
   -epub-writing-mode: vertical-rl;
 }
 
@@ -59,6 +59,10 @@ h1, h2, h3, h4, h5, h6 {
 h1 {
   font-size: 1.7em;
   margin-right: 1.5em;
+}
+div.horizontal h1 {
+  font-size: 1.7em;
+  margin-top: 1.5em
 }
 h2 {
   font-size: 1.5em;
@@ -114,97 +118,194 @@ div {
   display: block;
   writing-mode: vertical-rl;
   -webkit-writing-mode: vertical-rl;
-  -moz-writing-mode: vertical-rl;  /* 未対応 */
-  -o-writing-mode: vertical-rl;  /* 未対応 */
-  -ms-writing-mode: vertical-rl;  /* 未対応 */
+  -moz-writing-mode: vertical-rl;
+  -o-writing-mode: vertical-rl;
+  -ms-writing-mode: vertical-rl;
   -epub-writing-mode: vertical-rl;
 }
-div.indent_1 {
+div.horizontal {
+  display:block;
+  max-width: 80%;
+  max-height: 90%;
+  margin: auto;
+  padding-left: 1em;
+  padding-right: 1em;
+  padding-top: 1em;
+  padding-bottom: 1em;
+  writing-mode: horizontal-tb;
+  -webkit-writing-mode: horizontal-tb;
+  -moz-writing-mode: horizontal-tb;
+  -o-writing-mode: horizontal-tb;
+  -ms-writing-mode: horizontal-tb;
+  -epub-writing-mode: horizontal-tb;
+}
+.indent_1 {
   display: block;
   margin-top: 1em;
 }
-div.indent_2 {
+div.horizontal .indent_1 {
+  writing-mode: horizontal-tb;
+  -webkit-writing-mode: horizontal-tb;
+  -moz-writing-mode: horizontal-tb;
+  -o-writing-mode: horizontal-tb;
+  -ms-writing-mode: horizontal-tb;
+  -epub-writing-mode: horizontal-tb;
+  margin-left: 1em;
+}
+.indent_2 {
   display: block;
   margin-top: 2em;
 }
-div.indent_3 {
+div.horizontal .indent_2 {
+  writing-mode: horizontal-tb;
+  -webkit-writing-mode: horizontal-tb;
+  -moz-writing-mode: horizontal-tb;
+  -o-writing-mode: horizontal-tb;
+  -ms-writing-mode: horizontal-tb;
+  -epub-writing-mode: horizontal-tb;
+  margin-left: 2em;
+}
+.indent_3 {
   display: block;
   margin-top: 3em;
 }
-div.indent_4 {
+div.horizontal .indent_3 {
+  writing-mode: horizontal-tb;
+  -webkit-writing-mode: horizontal-tb;
+  -moz-writing-mode: horizontal-tb;
+  -o-writing-mode: horizontal-tb;
+  -ms-writing-mode: horizontal-tb;
+  -epub-writing-mode: horizontal-tb;
+  margin-left: 3em;
+}
+.indent_4, .indent_4 {
   display: block;
   margin-top: 4em;
 }
-div.indent_5 {
+div.horizontal .indent_4 {
+  writing-mode: horizontal-tb;
+  -webkit-writing-mode: horizontal-tb;
+  -moz-writing-mode: horizontal-tb;
+  -o-writing-mode: horizontal-tb;
+  -ms-writing-mode: horizontal-tb;
+  -epub-writing-mode: horizontal-tb;
+  margin-left: 4em;
+}
+.indent_5 {
   display: block;
   margin-top: 5em;
 }
-div.indent_6 {
+div.horizontal .indent_5 {
+  writing-mode: horizontal-tb;
+  -webkit-writing-mode: horizontal-tb;
+  -moz-writing-mode: horizontal-tb;
+  -o-writing-mode: horizontal-tb;
+  -ms-writing-mode: horizontal-tb;
+  -epub-writing-mode: horizontal-tb;
+  margin-left: 5em;
+}
+.indent_6 {
   display: block;
   margin-top: 6em;
 }
-div.indent_7 {
+div.horizontal .indent_6 {
+  writing-mode: horizontal-tb;
+  -webkit-writing-mode: horizontal-tb;
+  -moz-writing-mode: horizontal-tb;
+  -o-writing-mode: horizontal-tb;
+  -ms-writing-mode: horizontal-tb;
+  -epub-writing-mode: horizontal-tb;
+  margin-left: 6em;
+}
+.indent_7 {
   display: block;
   margin-top: 7em;
 }
-div.indent_8 {
+div.horizontal .indent_7 {
+  writing-mode: horizontal-tb;
+  -webkit-writing-mode: horizontal-tb;
+  -moz-writing-mode: horizontal-tb;
+  -o-writing-mode: horizontal-tb;
+  -ms-writing-mode: horizontal-tb;
+  -epub-writing-mode: horizontal-tb;
+  margin-left: 7em;
+}
+.indent_8 {
   display: block;
   margin-top: 8em;
 }
-div.indent_9 {
+div.horizontal .indent_8 {
+  writing-mode: horizontal-tb;
+  -webkit-writing-mode: horizontal-tb;
+  -moz-writing-mode: horizontal-tb;
+  -o-writing-mode: horizontal-tb;
+  -ms-writing-mode: horizontal-tb;
+  -epub-writing-mode: horizontal-tb;
+  margin-left: 8em;
+}
+.indent_9 {
   display: block;
   margin-top: 9em;
 }
-div.indent_x {
+div.horizontal .indent_9 {
+  writing-mode: horizontal-tb;
+  -webkit-writing-mode: horizontal-tb;
+  -moz-writing-mode: horizontal-tb;
+  -o-writing-mode: horizontal-tb;
+  -ms-writing-mode: horizontal-tb;
+  -epub-writing-mode: horizontal-tb;
+  margin-left: 9em;
+}
+.indent_x {
   display: block;
   text-align: right;
 }
-div.indent_x1 {
+.indent_x1 {
   display: block;
   margin-bottom: 1em;
   text-align: right;
 }
-div.indent_x2 {
+.indent_x2 {
   display: block;
   margin-bottom: 2em;
   text-align: right;
 }
-div.indent_x3 {
+.indent_x3 {
   display: block;
   margin-bottom: 3em;
   text-align: right;
 }
-div.indent_x4 {
+.indent_x4 {
   display: block;
   margin-bottom: 4em;
   text-align: right;
 }
-div.indent_x5 {
+.indent_x5 {
   display: block;
   margin-bottom: 5em;
   text-align: right;
 }
-div.indent_x6 {
+.indent_x6 {
   display: block;
   margin-bottom: 6em;
   text-align: right;
 }
-div.indent_x7 {
+.indent_x7 {
   display: block;
   margin-bottom: 7em;
   text-align: right;
 }
-div.indent_x8 {
+.indent_x8 {
   display: block;
   margin-bottom: 8em;
   text-align: right;
 }
-div.indent_x9 {
+.indent_x9 {
   display: block;
   margin-bottom: 9em;
   text-align: right;
 }
-div.indent_-1 {
+.indent_-1 {
   display: black;
   margin-top: 3em;
   text-indent: -1em;
@@ -343,13 +444,16 @@ span {
   display: inline;
 }
 
-span.vih {
+span.hiv {
   text-combine: horizontal;
   -webkit-text-combine: horizontal;
   -moz-text-combine: horizontal;
   -o-text-combine: horizontal;
   -ms-text-combine: horizontal;
   -epub-text-combine: horizontal;
+}
+div.horizontal span.hiv {
+  display: inline;
 }
 span.date {
   text-combine-horizontal: digits 2;
@@ -358,6 +462,9 @@ span.date {
   -webkit-text-transform: full-width;
   -epub-text-combine-horizontal: digits 2;
   -epub-text-transform: full-width;
+}
+div.horizontal span.date {
+  display: inline;
 }
 sub {
   display: inline;
@@ -400,7 +507,7 @@ cite {
 
 cite title {
   display: inline;
-  border-left: 1px solid gray
+  border-left: 1px solid gray;
 }
 
 cite author {
@@ -492,7 +599,7 @@ list[type="ul"] {
 }
 
 list[type="pl"] {
-  list-style-type: none;	
+  list-style-type: none;
 }
 
 list > li > list[type=ul] {
@@ -601,6 +708,7 @@ figure {
 	display: table;
 /*        float: left;*/
 	max-width: 90%;
+	max-height: 90%;
 	margin-top: 1.89em;
 	margin-bottom: 1.89em;
 	margin-left: auto;
@@ -608,9 +716,9 @@ figure {
 	text-align: center;
 	writing-mode: horizontal-tb;
 	-webkit-writing-mode: horizontal-tb;
-	-moz-writing-mode: horizontal-tb;  /* 未対応 */
-	-o-writing-mode: horizontal-tb;  /* 未対応 */
-	-ms-writing-mode: horizontal-tb;  /* 未対応 */
+	-moz-writing-mode: horizontal-tb;
+	-o-writing-mode: horizontal-tb;
+	-ms-writing-mode: horizontal-tb;
 	-epub-writing-mode: horizontal-tb;
 }
 
@@ -623,7 +731,7 @@ figure p {
 figure img {
 	display: inline;
 	max-width: 80%;
-	max-height: 80%;
+	max-height: 70%;
 }
 
 figcaption {
@@ -636,21 +744,21 @@ figcaption {
 	text-align: center;
 }
 
-aside.figanno {
+figure aside {
   display:block;
   margin:  1.2em 1em 1.2em 1em;
   padding: 0.5em 1em 0.5em 1em;
   font-family: "ＭＳ ゴシック", "MS Gothic", "ヒラギノ角ゴ ProN W3", "HiraKakuProN-W3", sans-serif, serif;
-  border-width: 90%;
+  border-width: auto;
   border-top: 1px solid black;
   border-right: 0px;
   border-bottom: 1px solid black;
   border-left: 0px;
   writing-mode: horizontal-tb;
   -webkit-writing-mode: horizontal-tb;
-  -moz-writing-mode: horizontal-tb;  /* 未対応 */
-  -o-writing-mode: horizontal-tb;  /* 未対応 */
-  -ms-writing-mode: horizontal-tb;  /* 未対応 */
+  -moz-writing-mode: horizontal-tb;
+  -o-writing-mode: horizontal-tb;
+  -ms-writing-mode: horizontal-tb;
   -epub-writing-mode: horizontal-tb;
 }
 /* -----------------------------
@@ -663,9 +771,9 @@ strong.emphasis_dot {
 	font-weight: normal;
 	text-emphasis-style: filled;
 	-webkit-text-emphasis-style: filled;
-	-moz-text-emphasis-style: filled; /* 未対応 */
-	-o-text-emphasis-style: filled; /* 未対応 */
-	-ms-text-emphasis-style: filled; /* 未対応 */
+	-moz-text-emphasis-style: filled;
+	-o-text-emphasis-style: filled;
+	-ms-text-emphasis-style: filled;
 	-epub-text-emphasis-style: filled;
 }
 /* 圏点 ビュレット */
@@ -676,9 +784,9 @@ strong.bullet {
 	font-weight: normal;
 	text-emphasis-style: filled dot;
 	-webkit-text-emphasis-style: filled dot;
-	-moz-text-emphasis-style: filled dot; /* 未対応 */
-	-o-text-emphasis-style: filled dot; /* 未対応 */
-	-ms-text-emphasis-style: filled dot; /* 未対応 */
+	-moz-text-emphasis-style: filled dot;
+	-o-text-emphasis-style: filled dot;
+	-ms-text-emphasis-style: filled dot;
 	-epub-text-emphasis-style: filled dot;
 }
 /* 圏点 白ビュレット */
@@ -689,9 +797,9 @@ strong.white_bullet {
 	font-weight: normal;
 	text-emphasis-style: open dot;
 	-webkit-text-emphasis-style: open dot;
-	-moz-text-emphasis-style: open dot; /* 未対応 */
-	-o-text-emphasis-style: open dot; /* 未対応 */
-	-ms-text-emphasis-style: open dot; /* 未対応 */
+	-moz-text-emphasis-style: open dot;
+	-o-text-emphasis-style: open dot;
+	-ms-text-emphasis-style: open dot;
 	-epub-text-emphasis-style: open dot;
 }
 /* 圏点 黒マル */
@@ -702,9 +810,9 @@ strong.black_circle {
 	font-weight: normal;
 	text-emphasis-style: filled circle;
 	-webkit-text-emphasis-style: filled circle;
-	-moz-text-emphasis-style: filled circle; /* 未対応 */
-	-o-text-emphasis-style: filled circle;/* 未対応 */
-	-ms-text-emphasis-style: filled circle; /* 未対応 */
+	-moz-text-emphasis-style: filled circle;
+	-o-text-emphasis-style: filled circle;
+	-ms-text-emphasis-style: filled circle;
 	-epub-text-emphasis-style: filled circle; 
 }
 /* 圏点 白マル */
@@ -715,9 +823,9 @@ strong.white_circle {
 	font-weight: normal;
 	text-emphasis-style: open circle;
 	-webkit-text-emphasis-style: open circle;
-	-moz-text-emphasis-style: open circle; /* 未対応 */
-	-o-text-emphasis-style: open circle;/* 未対応 */
-	-ms-text-emphasis-style: open circle; /* 未対応 */
+	-moz-text-emphasis-style: open circle;
+	-o-text-emphasis-style: open circle;
+	-ms-text-emphasis-style: open circle;
 	-epub-text-emphasis-style: open circle; 
 }
 /* 圏点 蛇の目 */
@@ -728,9 +836,9 @@ strong.fisheye {
 	font-weight: normal;
 	text-emphasis-style: filled double-circle;
 	-webkit-text-emphasis-style: filled double-circle;
-	-moz-text-emphasis-style: filled double-circle; /* 未対応 */
-	-o-text-emphasis-style: filled double-circle;/* 未対応 */
-	-ms-text-emphasis-style: filled double-circle; /* 未対応 */
+	-moz-text-emphasis-style: filled double-circle;
+	-o-text-emphasis-style: filled double-circle;
+	-ms-text-emphasis-style: filled double-circle;
 	-epub-text-emphasis-style: filled double-circle; 
 }
 /* 圏点 二重丸 */
@@ -741,9 +849,9 @@ strong.bullseye {
 	font-weight: normal;
 	text-emphasis-style: open double-circle;
 	-webkit-text-emphasis-style: open double-circle;
-	-moz-text-emphasis-style: open double-circle; /* 未対応 */
-	-o-text-emphasis-style: open double-circle;/* 未対応 */
-	-ms-text-emphasis-style: open double-circle; /* 未対応 */
+	-moz-text-emphasis-style: open double-circle;
+	-o-text-emphasis-style: open double-circle;
+	-ms-text-emphasis-style: open double-circle;
 	-epub-text-emphasis-style: open double-circle; 
 }
 /* 圏点 黒三角 */
@@ -754,9 +862,9 @@ strong.black_up-pointing_triangle {
 	font-weight: normal;
 	text-emphasis-style: filled triangle;
 	-webkit-text-emphasis-style: filled triangle;
-	-moz-text-emphasis-style: filled triangle; /* 未対応 */
-	-o-text-emphasis-style: filled triangle;/* 未対応 */
-	-ms-text-emphasis-style: filled triangle; /* 未対応 */
+	-moz-text-emphasis-style: filled triangle;
+	-o-text-emphasis-style: filled triangle;
+	-ms-text-emphasis-style: filled triangle;
 	-epub-text-emphasis-style: filled triangle; 
 }
 /* 圏点 白三角 */
@@ -767,9 +875,9 @@ strong.white_up-pointing_triangle {
 	font-weight: normal;
 	text-emphasis-style: open triangle;
 	-webkit-text-emphasis-style: open triangle;
-	-moz-text-emphasis-style: open triangle; /* 未対応 */
-	-o-text-emphasis-style: open triangle;/* 未対応 */
-	-ms-text-emphasis-style: open triangle; /* 未対応 */
+	-moz-text-emphasis-style: open triangle;
+	-o-text-emphasis-style: open triangle;
+	-ms-text-emphasis-style: open triangle;
 	-epub-text-emphasis-style: open triangle; 
 }
 /* 圏点 ゴマ点 */
@@ -780,9 +888,9 @@ strong.sesame_dot {
 	font-weight: normal;
 	text-emphasis-style: filled sesame;
 	-webkit-text-emphasis-style: filled sesame;
-	-moz-text-emphasis-style: filled sesame; /* 未対応 */
-	-o-text-emphasis-style: filled sesame;/* 未対応 */
-	-ms-text-emphasis-style: filled sesame; /* 未対応 */
+	-moz-text-emphasis-style: filled sesame;
+	-o-text-emphasis-style: filled sesame;
+	-ms-text-emphasis-style: filled sesame;
 	-epub-text-emphasis-style: filled sesame; 
 }
 /* 圏点 白ゴマ点 */
@@ -793,9 +901,9 @@ strong.white_sesame_dot {
 	font-weight: normal;
 	text-emphasis-style: open sesame;
 	-webkit-text-emphasis-style: open sesame;
-	-moz-text-emphasis-style: open sesame; /* 未対応 */
-	-o-text-emphasis-style: open sesame;/* 未対応 */
-	-ms-text-emphasis-style: open sesame; /* 未対応 */
+	-moz-text-emphasis-style: open sesame;
+	-o-text-emphasis-style: open sesame;
+	-ms-text-emphasis-style: open sesame;
 	-epub-text-emphasis-style: open sesame; 
 }
 /* 傍線 */
