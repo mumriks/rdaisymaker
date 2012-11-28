@@ -1,5 +1,4 @@
 # encoding: sjis
-# Copyright (c) 2012 Kishida Atsushi
 # 0.2
 require 'win32ole'
 
@@ -62,7 +61,7 @@ end
 def make_console
    File.open("rdmconsole.bat", "w"){|f|
       f.puts <<EOT
-@rem R DAISY Maker ŽÀsƒRƒ“ƒ\[ƒ‹‹N“®ƒoƒbƒ`ƒtƒ@ƒCƒ‹
+@rem R DAISY Maker ï¿½ï¿½sï¿½Rï¿½ï¿½ï¿½\ï¿½[ï¿½ï¿½ï¿½Nï¿½ï¿½ï¿½oï¿½bï¿½`ï¿½tï¿½@ï¿½Cï¿½ï¿½
 @set path=%path%;#{@rubypath};#{@bindir};
 start cmd
 EOT
@@ -72,7 +71,7 @@ end
 def make_pedit_bat
    File.open("#{@bindir}/pedit.bat", "w"){|f|
       f.puts <<EOT
-@rem •ÒWŽx‰‡ƒc[ƒ‹‹N“®ƒoƒbƒ`ƒtƒ@ƒCƒ‹
+@rem ï¿½ÒWï¿½xï¿½ï¿½ï¿½cï¿½[ï¿½ï¿½ï¿½Nï¿½ï¿½ï¿½oï¿½bï¿½`ï¿½tï¿½@ï¿½Cï¿½ï¿½
 @ruby #{@bindir}/pedit.rb %*
 EOT
    }
@@ -81,7 +80,7 @@ end
 def make_rdm_bat
    File.open("#{@bindir}/rdm.bat", "w"){|f|
       f.puts <<EOT
-@rem R DAISY Maker ‹N“®ƒoƒbƒ`ƒtƒ@ƒCƒ‹
+@rem R DAISY Maker ï¿½Nï¿½ï¿½ï¿½oï¿½bï¿½`ï¿½tï¿½@ï¿½Cï¿½ï¿½
 @ruby #{@bindir}/rdaisymaker.rb %*
 EOT
    }
@@ -90,14 +89,14 @@ end
 def make_rd2_bat
    File.open("#{@bindir}/rd2.bat", "w"){|f|
       f.puts <<EOT
-@rem R Daisy2.02 Exchanger ‹N“®ƒoƒbƒ`ƒtƒ@ƒCƒ‹
+@rem R Daisy2.02 Exchanger ï¿½Nï¿½ï¿½ï¿½oï¿½bï¿½`ï¿½tï¿½@ï¿½Cï¿½ï¿½
 @ruby #{@bindir}/rdaisy202.rb %*
 EOT
    }
 end
 
 def error
-   STDERR.puts "æ‚É Ruby ‚ðƒCƒ“ƒXƒg[ƒ‹‚µ‚Ä‚­‚¾‚³‚¢B"
+   STDERR.puts "ï¿½ï¿½ï¿½ Ruby ï¿½ï¿½Cï¿½ï¿½ï¿½Xï¿½gï¿½[ï¿½ï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½B"
    exit 0
 end
 
