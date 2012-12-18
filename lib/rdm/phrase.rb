@@ -170,10 +170,10 @@ class Headline < Tag
       def set_navstr(navstr = nil)
          if navstr.nil?
             str = @phrase
-            @navstr = Phrase::cut_front_space(cut_xml_tag(cut_ruby(str)))
          else
-            @navstr = navstr
+            str = navstr
          end
+         @navstr = Phrase::cut_front_space(cut_xml_tag(cut_ruby(str)))
       end
    end
 end
@@ -350,12 +350,66 @@ end
 
 class Image
    class Caption < Phrase
-      def initialize(phrase, arg = nil)
-         super
-      end
       attr_accessor :ncxsrc, :ref
       def compile_xml(daisy)
          daisy.compile_image_caption(self)
+      end
+      def compile_smil(daisy)
+         daisy.compile_smil_text(self)
+      end
+   end
+end
+
+class Linenum
+   class Sentence < Phrase
+      attr_accessor :ncxsrc
+      def compile_xml(daisy)
+         daisy.compile_linenum_sentence(self)
+      end
+      def compile_smil(daisy)
+         daisy.compile_smil_linenum(self)
+      end
+   end
+end
+
+class Line
+   class Sentence < Phrase
+      attr_accessor :ncxsrc
+      def compile_xml(daisy)
+         daisy.compile_line_sentence(self)
+      end
+      def compile_smil(daisy)
+         daisy.compile_smil_text(self)
+      end
+   end
+end
+
+class Poem
+   class Title < Phrase
+      attr_accessor :ncxsrc
+      def compile_xml(daisy)
+         daisy.compile_poem_title(self)
+      end
+      def compile_smil(daisy)
+         daisy.compile_smil_text(self)
+      end
+   end
+   class Author < Phrase
+      attr_accessor :ncxsrc
+      def compile_xml(daisy)
+         daisy.compile_poem_author(self)
+      end
+      def compile_smil(daisy)
+         daisy.compile_smil_text(self)
+      end
+   end
+end
+
+class Dateline
+   class Sentence < Phrase
+      attr_accessor :ncxsrc
+      def compile_xml(daisy)
+         daisy.compile_dateline_sentence(self)
       end
       def compile_smil(daisy)
          daisy.compile_smil_text(self)

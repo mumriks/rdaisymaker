@@ -131,8 +131,12 @@ xmlns:dtb="http://www.daisy.org/z3986/2005/dtbook/">
       text-indent: -1em;
     </xsl:attribute>
   </xsl:attribute-set>
-  <xsl:attribute-set name="border">
+  <xsl:attribute-set name="quoteborder">
     <xsl:attribute name="style">
+      display: block;
+      margin-left: 2em;
+      margin-top: 0.6em;
+      margin-bottom: 0.6em;
       border: 1px solid black
     </xsl:attribute>
   </xsl:attribute-set>
@@ -1025,6 +1029,18 @@ xmlns:dtb="http://www.daisy.org/z3986/2005/dtbook/">
        If applicable, include: cite -->
   <xsl:template match="dtb:blockquote">
     <xsl:element name="blockquote">
+
+      <xsl:choose>
+        <xsl:when test="@class='border'">
+          <xsl:element name="blockquote" use-attribute-sets="quoteborder">
+            <xsl:attribute name="class">
+              <xsl:value-of select="@class" />
+            </xsl:attribute>
+            <xsl:apply-templates />
+          </xsl:element>
+        </xsl:when>
+        <xsl:otherwise>
+
       <xsl:if test="@id">
         <xsl:attribute name="id">
           <xsl:value-of select="@id" />
@@ -1041,8 +1057,13 @@ xmlns:dtb="http://www.daisy.org/z3986/2005/dtbook/">
         </xsl:attribute>
       </xsl:if>
       <xsl:apply-templates/>
+
+        </xsl:otherwise>
+      </xsl:choose>
+
     </xsl:element>
   </xsl:template>
+
 
   <!-- Map a line to a br tag -->
   <xsl:template match="dtb:line">
@@ -1851,7 +1872,6 @@ xmlns:dtb="http://www.daisy.org/z3986/2005/dtbook/">
           <xsl:value-of select="@valign"/>
         </xsl:attribute>
       </xsl:if>
-
       <xsl:apply-templates/>
     </xsl:element>
   </xsl:template>

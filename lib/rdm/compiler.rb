@@ -94,7 +94,7 @@ class Daisy
    end
 
    def compile_inline_tag(str)
-      while /@(<[a-z]+>){([^{]+)}/ =~ str
+      while /@(<[a-z]+>){([^}]+)}/ =~ str
          type = $1
          args = $2
          case type
@@ -165,11 +165,21 @@ class Daisy
    end
 
    def compile_indent(tag)
-      if tag.terminal
+      if /\Ax[1-9]?|\A[1-9]/ =~ tag.indent
+         if @ptag
+            print_paragraph_end()
+         end
+         @xfile.puts(indent(%Q[<div class="indent_#{tag.indent}">], @xindent))
+         @xindent += 2
+      elsif /-/ =~ tag.indent
+         @xfile.puts(indent(%Q[<p class="indent_-1">], @xindent))
+         @xindent += 2
+         @m_indent, @ptag = true, true
+      elsif tag.terminal
          @xindent -= 2
          if @m_indent
-            @xfile.puts(indent("</div>", @xindent))
-            @m_indent = false
+            @xfile.puts(indent("</p>", @xindent))
+            @m_indent,@ptag = false, false
          elsif @ptag
             @xfile.puts(indent("</p>", @xindent))
             @xfile.puts(indent("</div>", @xindent - 2))
@@ -178,25 +188,12 @@ class Daisy
          else
             @xfile.puts(indent("</div>", @xindent))
          end
-      elsif /\Ax[1-9]?|\A[1-9]/ =~ tag.indent
-         if @ptag
-            @xindent -= 2
-            @xfile.puts(indent("</p>", @xindent))
-            @ptag = false
-         end
-         @xfile.puts(indent(%Q[<div class="indent_#{tag.indent}">], @xindent))
-         @xindent += 2
-      end
-      if /-/ =~ tag.indent
-         @m_indent = true
       end
    end
 
    def compile_quote_indent(phr)
       if phr.terminal
-         @xindent -= 2
-         @xfile.puts(indent("</p>", @xindent))
-         @ptag = false
+         print_paragraph_end()
       else
          if @m_indent
             @m_indent = false
@@ -219,15 +216,17 @@ class Daisy
    def check_paragraph
       unless @header
          unless @ptag
-            if @m_indent
-               @xfile.puts(indent(%Q[<p class="indent_-1">], @xindent))
-            else
-               @xfile.puts(indent("<p>", @xindent))
-            end
+            @xfile.puts(indent("<p>", @xindent))
             @xindent += 2
             @ptag = true
          end
       end
+   end
+
+   def print_paragraph_end
+      @xindent -= 2
+      @xfile.puts(indent("</p>", @xindent))
+      @ptag = false
    end
 
    def compile_table_id(arg)

@@ -228,8 +228,14 @@ def read_type(phr)
       check_args(args, type)
       @daisy.skippable.sidebar = "false"
       objs << note_block(phr, args, @type)
-#   when /\Alinenum\z/
-#
+   when /\Aline\z/
+      @type = 'Line'
+      phr, args = read_phrase(phr)
+      @daisy.skippable.linenum = "false" unless args[0].nil?
+      objs << line_num_block(phr, args)
+   when /\Apoem\z/
+      phr, args = read_phrase(phr)
+      objs << poem_block(phr, args)
    when /\Aquote(.?)\z/
       @type = 'Quote'
       phr, args = read_phrase(phr)
@@ -350,6 +356,7 @@ def table_block(phr, args, border)
          objs << Tr.new.post
       }
       objs << Table.new(args[0]).post
+      @rdm.first_sentence.arg = args[0] if args[1].nil?
       @rdm.first_sentence.endcell = @ts
    else
       @rdm.not_table_data(args)
@@ -392,10 +399,7 @@ def image_block(phr, args)
       end
    }
    print_error(Daisy::ERRMES["errmes1"] + where) if @rdm.imgcount == 0
-   pnotes.each {|pn|
-      pn.ref = @rdm.imgids.rstrip
-      pn.ncxsrc.arg = "#{pn.arg}-E"
-   }
+   pnotes.each {|pn| pn.ref = @rdm.imgids.rstrip }
    objs << @rdm.make_image_group(group, args)
    return objs
 end
@@ -427,6 +431,8 @@ def indent_block(phr, args)
    if Indent.valid_indent?(args[0])
       if 'Quote' == @type
          @i = Quote::Indent.new(args[0])
+      elsif 'Line' == @type
+         @i = Line::Indent.new(args[0])
       else
          @i = Indent.new(args[0])
       end
@@ -488,7 +494,7 @@ def note_block(phr, args, type)
             else
                pr = make_paragraph()
                objs << pr if pr
-               if phr.size == i + 1
+               if line == i + 1
                   ns = @rdm.make_sentence(p, "#{type}::Sentence", "#{args[0]}-E")
                else
                   ns = @rdm.make_sentence(p, "#{type}::Sentence", "#{args[0]}-#{i}")
@@ -506,7 +512,7 @@ def note_block(phr, args, type)
                if args[1] and @rdm.first_sentence.nil?
                   objs << @rdm.sidebar_caption(args[1])
                end
-               if phr.size == i + 1
+               if line == i + 1
                   ns = @rdm.make_sentence(p, "#{type}::Sentence", "ps#{@rdm.nCount}-E")
                else
                   ns = @rdm.make_sentence(p, "#{type}::Sentence", "ps#{@rdm.nCount}-#{i}")
@@ -514,7 +520,7 @@ def note_block(phr, args, type)
                objs << ns
                @rdm.first_sentence = ns if @rdm.first_sentence.nil?
             end
-         end
+        end
       }
    else
       @rdm.no_sentence_in_note(type, args)
@@ -616,6 +622,71 @@ def horizontal_block(phr, args)
       end
    }
    objs << div.dup.post
+   return objs
+end
+
+def poem_block(phr, args)
+   unless args[0].nil?
+      num = args[0].empty? ? nil : args[0].to_i
+   end
+   objs = make_line(phr, num, true)
+   unless args[1].nil?
+      title = args[1].empty? ? nil : args[1]
+   end
+   unless args[2].nil?
+      author = args[2].empty? ? nil : args[2]
+   end
+   objs.unshift Poem::Author.new(author) unless author.nil?
+   objs.unshift Poem::Title.new(title) unless title.nil?
+   pm = Poem.new("pm#{@rdm.nCount}")
+   objs.unshift pm
+   @rdm.nCount += 1
+   objs.push pm.dup.post
+   return objs
+end
+
+def line_num_block(phr, args)
+   unless args[0].nil?
+      num = args[0].empty? ? nil : args[0].to_i
+   end
+   objs = make_line(phr, num, false)
+   lg = Linegroup.new("lg#{@rdm.nCount}")
+   lg.startnum = num
+   objs.unshift lg
+   @rdm.nCount += 1
+   objs.push lg.dup.post
+   return objs
+end
+
+def make_line(phr, num, poem)
+   objs = []
+   phr.each {|line|
+      if line.kind_of?(Array)
+         if poem
+            objs << line if @rdm.valid_syntax_at_poem?(line)
+         else
+            objs << line if @rdm.valid_syntax_at_linegroup?(line)
+         end
+      elsif PARAGRAPH =~ line
+         next
+      elsif /\A[fFsS]?:?[0-9０-９]+(?:ページ|ぺーじ)?\z/ =~ line
+         objs << make_page(line)
+      elsif /\A@<date>{(.+)}\z/ =~ line
+         date = $1
+         objs << Dateline.new("dl#{@rdm.nCount}")
+         @rdm.nCount += 1
+         objs << @rdm.make_sentence(date, "Dateline::Sentence")
+         objs << Dateline.new.post
+      else
+         objs << Line.new("l#{@rdm.nCount}")
+         @rdm.nCount += 1
+         objs << @rdm.make_sentence(num.to_s, "Linenum::Sentence") unless num.nil?
+         num += 1 unless num.nil?
+         objs << @rdm.make_sentence(line, "Line::Sentence")
+         objs << Line.new.post
+      end
+   }
+   @paCount += 1 if 2 > @paCount
    return objs
 end
 

@@ -16,7 +16,7 @@ html {
 }
 
 head, head * {
-  display: none
+  display: none;
 }
 
 
@@ -62,7 +62,7 @@ h1 {
 }
 div.horizontal h1 {
   font-size: 1.7em;
-  margin-top: 1.5em
+  margin-top: 1.5em;
 }
 h2 {
   font-size: 1.5em;
@@ -88,7 +88,7 @@ h6 {
 /* ------------------------------------------------------------- */
 /*                       pagenum, linenum                        */
 /* ------------------------------------------------------------- */
-
+/*
 pagenum {
   display: inline;
   color: rgb(30,30,30);
@@ -107,9 +107,9 @@ linenum {
 }
 
 linenum:after {
-  content: " "
+  content: " ";
 }
-
+*/
 /* ------------------------------------------------------------- */
 /*                       general block                           */
 /* ------------------------------------------------------------- */
@@ -144,171 +144,291 @@ div.horizontal {
   margin-top: 1em;
 }
 div.horizontal .indent_1 {
+  margin-left: 1em;
   writing-mode: horizontal-tb;
   -webkit-writing-mode: horizontal-tb;
   -moz-writing-mode: horizontal-tb;
   -o-writing-mode: horizontal-tb;
   -ms-writing-mode: horizontal-tb;
   -epub-writing-mode: horizontal-tb;
-  margin-left: 1em;
 }
 .indent_2 {
   display: block;
   margin-top: 2em;
 }
 div.horizontal .indent_2 {
+  margin-left: 2em;
   writing-mode: horizontal-tb;
   -webkit-writing-mode: horizontal-tb;
   -moz-writing-mode: horizontal-tb;
   -o-writing-mode: horizontal-tb;
   -ms-writing-mode: horizontal-tb;
   -epub-writing-mode: horizontal-tb;
-  margin-left: 2em;
 }
 .indent_3 {
   display: block;
   margin-top: 3em;
 }
 div.horizontal .indent_3 {
+  margin-left: 3em;
   writing-mode: horizontal-tb;
   -webkit-writing-mode: horizontal-tb;
   -moz-writing-mode: horizontal-tb;
   -o-writing-mode: horizontal-tb;
   -ms-writing-mode: horizontal-tb;
   -epub-writing-mode: horizontal-tb;
-  margin-left: 3em;
 }
-.indent_4, .indent_4 {
+.indent_4 {
   display: block;
   margin-top: 4em;
 }
 div.horizontal .indent_4 {
+  margin-left: 4em;
   writing-mode: horizontal-tb;
   -webkit-writing-mode: horizontal-tb;
   -moz-writing-mode: horizontal-tb;
   -o-writing-mode: horizontal-tb;
   -ms-writing-mode: horizontal-tb;
   -epub-writing-mode: horizontal-tb;
-  margin-left: 4em;
 }
 .indent_5 {
   display: block;
   margin-top: 5em;
 }
 div.horizontal .indent_5 {
+  margin-left: 5em;
   writing-mode: horizontal-tb;
   -webkit-writing-mode: horizontal-tb;
   -moz-writing-mode: horizontal-tb;
   -o-writing-mode: horizontal-tb;
   -ms-writing-mode: horizontal-tb;
   -epub-writing-mode: horizontal-tb;
-  margin-left: 5em;
 }
 .indent_6 {
   display: block;
   margin-top: 6em;
 }
 div.horizontal .indent_6 {
+  margin-left: 6em;
   writing-mode: horizontal-tb;
   -webkit-writing-mode: horizontal-tb;
   -moz-writing-mode: horizontal-tb;
   -o-writing-mode: horizontal-tb;
   -ms-writing-mode: horizontal-tb;
   -epub-writing-mode: horizontal-tb;
-  margin-left: 6em;
 }
 .indent_7 {
   display: block;
   margin-top: 7em;
 }
 div.horizontal .indent_7 {
+  margin-left: 7em;
   writing-mode: horizontal-tb;
   -webkit-writing-mode: horizontal-tb;
   -moz-writing-mode: horizontal-tb;
   -o-writing-mode: horizontal-tb;
   -ms-writing-mode: horizontal-tb;
   -epub-writing-mode: horizontal-tb;
-  margin-left: 7em;
 }
 .indent_8 {
   display: block;
   margin-top: 8em;
 }
 div.horizontal .indent_8 {
+  margin-left: 8em;
   writing-mode: horizontal-tb;
   -webkit-writing-mode: horizontal-tb;
   -moz-writing-mode: horizontal-tb;
   -o-writing-mode: horizontal-tb;
   -ms-writing-mode: horizontal-tb;
   -epub-writing-mode: horizontal-tb;
-  margin-left: 8em;
 }
 .indent_9 {
   display: block;
   margin-top: 9em;
 }
 div.horizontal .indent_9 {
+  margin-left: 9em;
   writing-mode: horizontal-tb;
   -webkit-writing-mode: horizontal-tb;
   -moz-writing-mode: horizontal-tb;
   -o-writing-mode: horizontal-tb;
   -ms-writing-mode: horizontal-tb;
   -epub-writing-mode: horizontal-tb;
-  margin-left: 9em;
 }
 .indent_x {
   display: block;
   text-align: right;
+}
+div.horizontal .indent_x {
+  display: block;
+  text-align: right;
+  writing-mode: horizontal-tb;
+  -webkit-writing-mode: horizontal-tb;
+  -moz-writing-mode: horizontal-tb;
+  -o-writing-mode: horizontal-tb;
+  -ms-writing-mode: horizontal-tb;
+  -epub-writing-mode: horizontal-tb;
 }
 .indent_x1 {
   display: block;
   margin-bottom: 1em;
   text-align: right;
 }
+div.horizontal .indent_x1 {
+  display: block;
+  margin-right: 1em;
+  text-align: right;
+  writing-mode: horizontal-tb;
+  -webkit-writing-mode: horizontal-tb;
+  -moz-writing-mode: horizontal-tb;
+  -o-writing-mode: horizontal-tb;
+  -ms-writing-mode: horizontal-tb;
+  -epub-writing-mode: horizontal-tb;
+}
 .indent_x2 {
   display: block;
   margin-bottom: 2em;
   text-align: right;
+}
+div.horizontal .indent_x2 {
+  display: block;
+  margin-right: 2em;
+  text-align: right;
+  writing-mode: horizontal-tb;
+  -webkit-writing-mode: horizontal-tb;
+  -moz-writing-mode: horizontal-tb;
+  -o-writing-mode: horizontal-tb;
+  -ms-writing-mode: horizontal-tb;
+  -epub-writing-mode: horizontal-tb;
 }
 .indent_x3 {
   display: block;
   margin-bottom: 3em;
   text-align: right;
 }
+div.horizontal .indent_x3 {
+  display: block;
+  margin-right: 3em;
+  text-align: right;
+  writing-mode: horizontal-tb;
+  -webkit-writing-mode: horizontal-tb;
+  -moz-writing-mode: horizontal-tb;
+  -o-writing-mode: horizontal-tb;
+  -ms-writing-mode: horizontal-tb;
+  -epub-writing-mode: horizontal-tb;
+}
 .indent_x4 {
   display: block;
   margin-bottom: 4em;
   text-align: right;
+}
+div.horizontal .indent_x4 {
+  display: block;
+  margin-right: 4em;
+  text-align: right;
+  writing-mode: horizontal-tb;
+  -webkit-writing-mode: horizontal-tb;
+  -moz-writing-mode: horizontal-tb;
+  -o-writing-mode: horizontal-tb;
+  -ms-writing-mode: horizontal-tb;
+  -epub-writing-mode: horizontal-tb;
 }
 .indent_x5 {
   display: block;
   margin-bottom: 5em;
   text-align: right;
 }
+div.horizontal .indent_x5 {
+  display: block;
+  margin-right: 5em;
+  text-align: right;
+  writing-mode: horizontal-tb;
+  -webkit-writing-mode: horizontal-tb;
+  -moz-writing-mode: horizontal-tb;
+  -o-writing-mode: horizontal-tb;
+  -ms-writing-mode: horizontal-tb;
+  -epub-writing-mode: horizontal-tb;
+}
 .indent_x6 {
   display: block;
   margin-bottom: 6em;
   text-align: right;
+}
+div.horizontal .indent_x6 {
+  display: block;
+  margin-right: 6em;
+  text-align: right;
+  writing-mode: horizontal-tb;
+  -webkit-writing-mode: horizontal-tb;
+  -moz-writing-mode: horizontal-tb;
+  -o-writing-mode: horizontal-tb;
+  -ms-writing-mode: horizontal-tb;
+  -epub-writing-mode: horizontal-tb;
 }
 .indent_x7 {
   display: block;
   margin-bottom: 7em;
   text-align: right;
 }
+div.horizontal .indent_x7 {
+  display: block;
+  margin-right: 7em;
+  text-align: right;
+  writing-mode: horizontal-tb;
+  -webkit-writing-mode: horizontal-tb;
+  -moz-writing-mode: horizontal-tb;
+  -o-writing-mode: horizontal-tb;
+  -ms-writing-mode: horizontal-tb;
+  -epub-writing-mode: horizontal-tb;
+}
 .indent_x8 {
   display: block;
   margin-bottom: 8em;
   text-align: right;
+}
+div.horizontal .indent_x8 {
+  display: block;
+  margin-right: 8em;
+  text-align: right;
+  writing-mode: horizontal-tb;
+  -webkit-writing-mode: horizontal-tb;
+  -moz-writing-mode: horizontal-tb;
+  -o-writing-mode: horizontal-tb;
+  -ms-writing-mode: horizontal-tb;
+  -epub-writing-mode: horizontal-tb;
 }
 .indent_x9 {
   display: block;
   margin-bottom: 9em;
   text-align: right;
 }
+div.horizontal .indent_x9 {
+  display: block;
+  margin-right: 9em;
+  text-align: right;
+  writing-mode: horizontal-tb;
+  -webkit-writing-mode: horizontal-tb;
+  -moz-writing-mode: horizontal-tb;
+  -o-writing-mode: horizontal-tb;
+  -ms-writing-mode: horizontal-tb;
+  -epub-writing-mode: horizontal-tb;
+}
 .indent_-1 {
   display: black;
   margin-top: 3em;
   text-indent: -1em;
+}
+div.horizontal .indent_-1 {
+  display: block;
+  margin-left: 3em;
+  text-indent: -1em;
+  writing-mode: horizontal-tb;
+  -webkit-writing-mode: horizontal-tb;
+  -moz-writing-mode: horizontal-tb;
+  -o-writing-mode: horizontal-tb;
+  -ms-writing-mode: horizontal-tb;
+  -epub-writing-mode: horizontal-tb;
 }
 
 p {
@@ -451,8 +571,14 @@ span.hiv {
   -o-text-combine: horizontal;
   -ms-text-combine: horizontal;
   -epub-text-combine: horizontal;
+/*  text-combine-horizontal: digits 3;
+  text-transform: full-width;
+  -webkit-text-combine-horizontal: digits 3;
+  -webkit-text-transform: full-width;
+  -epub-text-combine-horizontal: digits 3;
+  -epub-text-transform: full-width;*/
 }
-div.horizontal span.hiv {
+div.horizontal span {
   display: inline;
 }
 span.date {
@@ -463,21 +589,18 @@ span.date {
   -epub-text-combine-horizontal: digits 2;
   -epub-text-transform: full-width;
 }
-div.horizontal span.date {
-  display: inline;
-}
 sub {
   display: inline;
-  vertical-align : sub;
-  font-size : 90%;
+  vertical-align: sub;
+  font-size: 90%;
   padding-top: 0.3em;
   padding-bottom: 0.3em;
 }
 
 sup {
   display: inline;
-  vertical-align : super;
-  font-size : 90%;
+  vertical-align: super;
+  font-size: 90%;
   padding-top: 0.3em;
   padding-bottom: 0.3em;
 }
@@ -511,7 +634,7 @@ cite title {
 }
 
 cite author {
-  display: inline;	
+  display: inline;
 }
 
 br {
@@ -533,13 +656,13 @@ a[epub|type="noteref"], a[epub|type="annoref"], a[rel="note"] {
 }
 
 sent {
-  display:inline;
-  margin:0em;
+  display: inline;
+  margin: 0em;
 }
 
 w {
-  display:inline;
-  margin:0em;
+  display: inline;
+  margin: 0em;
 }
 
 
@@ -553,7 +676,7 @@ w {
 /* type (ol | ul) #IMPLIED                                       */
 /* enum (1 | a | U | i | X) #IMPLIED                             */
 /* ------------------------------------------------------------- */
-
+/*
 list {
   display: block;
   margin-right: 1em;
@@ -601,7 +724,7 @@ list[type="ul"] {
 list[type="pl"] {
   list-style-type: none;
 }
-
+/*
 list > li > list[type=ul] {
   list-style-type: circle;
 }
@@ -614,7 +737,7 @@ list > li > list, list li list {
   margin-right: 0em;
   margin-left: 0em;
 }
-
+*/
 /* ------------------------------------------------------------- */
 /*                      definition list                          */
 /* ------------------------------------------------------------- */
@@ -707,12 +830,12 @@ th {
 figure {
 	display: table;
 /*        float: left;*/
-	max-width: 90%;
-	max-height: 90%;
+	max-width: 80%;
+	max-height: 80%;
 	margin-top: 1.89em;
 	margin-bottom: 1.89em;
-	margin-left: auto;
-	margin-right: auto;
+	margin-left: 1em; /*auto;*/
+	margin-right: 1em; /*auto;*/
 	text-align: center;
 	writing-mode: horizontal-tb;
 	-webkit-writing-mode: horizontal-tb;
@@ -731,7 +854,7 @@ figure p {
 figure img {
 	display: inline;
 	max-width: 80%;
-	max-height: 70%;
+	max-height: 80%;
 }
 
 figcaption {
@@ -745,15 +868,17 @@ figcaption {
 }
 
 figure aside {
-  display:block;
-  margin:  1.2em 1em 1.2em 1em;
+  display: block;
+  margin:  1.2em 2em 1.2em 2em;
   padding: 0.5em 1em 0.5em 1em;
   font-family: "ＭＳ ゴシック", "MS Gothic", "ヒラギノ角ゴ ProN W3", "HiraKakuProN-W3", sans-serif, serif;
+  max-width: auto;
   border-width: auto;
   border-top: 1px solid black;
   border-right: 0px;
   border-bottom: 1px solid black;
   border-left: 0px;
+  text-align: center;
   writing-mode: horizontal-tb;
   -webkit-writing-mode: horizontal-tb;
   -moz-writing-mode: horizontal-tb;
@@ -952,97 +1077,6 @@ strong.line_wave {
 	/* text-decoration-style: wave; */
 }
 
-
-/*----------------------------------------------------------
-ナビゲーション
-----------------------------------------------------------*/
-/*ナビゲーション  リスト */
-nav ol {
-	margin-left: 1em;
-	margin-right: 1em;
-	list-style-type: none;
-}
-
-
-/* 第1レベル */
-nav ol li {
-	margin-top: 0.26em;
-	margin-bottom: 0.26em;
-	font-size: 1.78em;
-	line-height: 1.6;
-}
-
-nav ol li ol {
-	font-size: 0.56em; /* フォントサイズ調整 */
-}
-
-/* 第2レベル */
-nav ol li ol li {
-	margin-top: 0.9em;
-	margin-bottom: 0.9em;
-	font-size: 1.11em;
-	line-height: 1.6;
-}
-
-nav ol li ol li ol {
-	font-size: 0.9em; /* フォントサイズ調整 */
-}
-
-/* 第3レベル */
-nav ol li ol li ol li {
-	margin-top: 0.62em;
-	margin-bottom: 0.62em;
-	font-size: 1em;
-	line-height: 1.6;
-}
-
-nav ol li ol li ol il ol {
-	font-size: 1em; /* フォントサイズ調整 */
-}
-
-/* 第4レベル */
-nav ol li ol li ol li ol li  {
-	margin-top: 0.26em;
-	margin-bottom: 0.26em;
-	font-size: 0.89em;
-	line-height: 1.6;
-}
-
-nav ol li ol li ol il ol li ol {
-	font-size: 1.12em; /* フォントサイズ調整 */
-}
-
-/* 第5レベル */
-nav ol li ol li ol li ol li ol li {
-	margin-top: 0.41em;
-	margin-bottom: 0.41em;
-	font-size: 0.78em;
-	line-height: 1.6;
-}
-
-nav ol li ol li ol il ol li ol li ol {
-	font-size: 1.28em; /* フォントサイズ調整 */
-}
-
-/* 第6レベル */
-nav ol li ol li ol li ol li ol li ol li {
-	margin-top: 0.41em;
-	margin-bottom: 0.41em;
-	font-size: 0.78em;
-	line-height: 1.6;
-}
-
-
-/* 折り返し用 */
-nav ol li {
-	padding-left: 1em;
-	text-indent: -1em;
-}
-nav ol li ol {
- 	margin-top: 0;
- 	margin-bottom: 0;
-	padding-left: 0;
-}
 
 /*----------------------------------------------------------
 ページ枠

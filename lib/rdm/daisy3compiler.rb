@@ -44,6 +44,7 @@ EOT
    end
 
    def print_level
+      print_paragraph_end if @ptag
       if @@befour_level
          if @@befour_level < @@level
             (@@level - @@befour_level).times {|l|
@@ -266,19 +267,21 @@ EOT
 
    def compile_table_tag(phr)
       tabref = compile_table_id(phr.arg)
-      if phr.border
-         @xfile.puts(indent(%Q[<table border="1" id="#{phr.arg}" smilref="#{tabref}">], @xindent))
-         @xindent += 2
-      elsif %r!\A/! =~ phr.tag
+      if %r!\A/! =~ phr.tag
          @xindent -= 2
          @xfile.puts(indent("<#{phr.tag}>", @xindent))
       elsif %r!\s/! =~ phr.tag
          @xfile.puts(indent("<#{phr.tag}>", @xindent))
       elsif 'table' == phr.tag
-         @xfile.puts(indent(%Q[<table id="#{phr.arg}" smilref="#{tabref}">], @xindent))
+         if phr.border
+            @xfile.puts(indent(%Q[<table border="1" rules="all" id="#{phr.arg}" smilref="#{tabref}">], @xindent))
+         else
+            @xfile.puts(indent(%Q[<table border="0" rules="none" id="#{phr.arg}" smilref="#{tabref}">], @xindent))
+         end
          @xindent += 2
       elsif 'nowrap' == phr.style
-         @xfile.puts(indent(%Q[<#{phr.tag} class="nowrap">], @xindent))
+         puts "DAISY3 では 'nowrap' は使用できないため、設定しません。"
+         @xfile.puts(indent(%Q[<#{phr.tag}>], @xindent))
          @xindent += 2
       else
          @xfile.puts(indent("<#{phr.tag}>", @xindent))
@@ -351,6 +354,48 @@ EOT
          @header = true
       end
    end
+
+   def compile_linegroup_tag(phr)
+      if %r!\A/! =~ phr.tag
+         @xindent -= 2
+         @xfile.puts(indent("<#{phr.tag}>", @xindent))
+      else
+         @xfile.puts(indent(%Q[<#{phr.tag} id="#{phr.arg}">], @xindent))
+         @xindent += 2
+         @header = true
+      end
+   end
+
+   def make_poem_title_author(phr, tag)
+      @xfile.puts(indent("<#{tag}>", @xindent))
+      @xindent += 2
+      print_sentence(phr)
+      @xindent -= 2
+      @xfile.puts(indent("</#{tag}>", @xindent))
+   end
+
+   def compile_poem_title(phr)
+      make_poem_title_author(phr, "title")
+   end
+
+   def compile_poem_author(phr)
+      make_poem_title_author(phr, "author")
+   end
+
+   alias :compile_poem_tag :compile_linegroup_tag
+   alias :compile_dateline_tag :compile_linegroup_tag
+
+   def compile_linenum_sentence(phr)
+      smilstr, idstr = compile_id(phr)
+      phr.ncxsrc = smilstr
+      @xfile.puts(indent(%Q[<linenum id="#{idstr}" smilref="#{smilstr}">#{phr.phrase}</linenum>], @xindent))
+   end
+
+   def compile_line_sentence(phr)
+      print_sentence(phr)
+   end
+
+   alias :compile_dateline_sentence :compile_line_sentence
 
 
    def smil_header
@@ -533,6 +578,13 @@ EOT
    def compile_smil_page(phr)
       xmlfilename, phrnum, tnum = set_smil_num(phr)
       @sfile.puts(indent(%Q[<par id="phr#{phrnum}" customTest="#{phr.namedowncase}">], @indent))
+      @sfile.puts(indent(%Q[<text src="#{xmlfilename}#t#{tnum}" />], @indent + 2))
+      @sfile.puts(indent("</par>", @indent))
+   end
+
+   def compile_smil_linenum(phr)
+      xmlfilename, phrnum, tnum = set_smil_num(phr)
+      @sfile.puts(indent(%Q[<par id="phr#{phrnum}" customTest="linenum">], @indent))
       @sfile.puts(indent(%Q[<text src="#{xmlfilename}#t#{tnum}" />], @indent + 2))
       @sfile.puts(indent("</par>", @indent))
    end

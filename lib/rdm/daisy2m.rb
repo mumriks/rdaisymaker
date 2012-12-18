@@ -234,7 +234,7 @@ module Daisy2
            @@paCount += 1
          when 'table', 'TABLE'
             make_paragraph()
-            t = Table.new("tb#{@@id}")
+            t = Table.new("tb#{@@id}", e.attributes["border"])
             @@sect.add_phrase(t)
             get_doc(e) if e.has_elements?
             @@sect.add_phrase(t.dup.post)
@@ -528,8 +528,6 @@ module Daisy2
                @xmeta.totalTime = e.attributes["content"]
             when "ncc:depth"
                @depth = e.attributes["content"]
-#            when "ncc:multimediaType"
-#               @xmeta.multimediaType = e.attributes["content"]
             when "ncc:narrator"
                @xmeta.narrator = many_contents?(@xmeta.narrator, e)
             when "ncc:files"

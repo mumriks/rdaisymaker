@@ -24,20 +24,20 @@ require 'rdm/bookcheck'
 require 'rdm/ncxbuilder'
 require 'rdm/opfbuilder'
 
-@params = {'type' => 'textNCX', 'pagedirection' => 'ltr', 'datevih' => true,
+@params = {'type' => 'textNCX', 'pagedirection' => 'ltr', 'datehiv' => true,
            'file' => false, 'generator' => RD2, 'ptk' => DNAME}
 
 parser = OptionParser.new
 scriptfile = File.basename($0)
 parser.banner = "Usage: ruby #{scriptfile} options"
-parser.on('--to-text3', 'テキストデイジー図書に変換(標準)'){
+parser.on('-3', '--to-text3', 'テキストデイジー図書に変換(標準)'){
    puts "daisy2.02 図書をテキストデイジー3図書に変換します。"
 }
 parser.on('--to-aft3', 'AudioFullText DAISY3に変換'){
    @params["type"] = 'audioFullText'
    puts "daisy2.02 図書を音声付デイジー3図書に変換します。"
 }
-parser.on('--to-text4', 'テキストのみEPUB3(横組み)に変換'){
+parser.on('-4', '--to-text4', 'テキストのみEPUB3(横組み)に変換'){
    @params["type"] = 'textDAISY4'
    @params["pagedirection"] = 'ltr'
    puts "daisy2.02 図書をEPUB3図書（横組み）に変換します。"
@@ -53,7 +53,7 @@ parser.on('--rtl', '文字を縦組みにする（EPUB3でのみ有効）'){
 }
 parser.on('--rtl-date', '文字を縦組み日付処理にする（EPUB3）'){
    @params["pagedirection"] = 'rtl'
-   @params["datevih"] = false
+   @params["datehiv"] = false
    puts "文字を縦組みにします。日付も独自に処理します。（EPUB3）"
 }
 parser.on('--to-text', '本文を抽出してテキストに(コンソール)'){
@@ -262,12 +262,12 @@ def main
          exchangeToDaisy3over()
       when 'textDAISY4'
          @daisy = TEXTDaisy4.new(values)
-         @daisy.datevih = @params["datevih"]
+         @daisy.datehiv = @params["datehiv"]
          read_book_data()
          exchangeToDaisy3over()
       when 'audioFullTextDAISY4'
          @daisy = AudioFullTextDaisy4.new(values)
-         @daisy.datevih = @params["datevih"]
+         @daisy.datehiv = @params["datehiv"]
          read_book_data()
          exchangeToDaisy3over()
       end

@@ -44,6 +44,26 @@ class RDM
       }
    end
 
+   def valid_syntax_at_poem?(array)
+      case array[0][0].class.to_s
+      when 'Sidebar', 'Image', 'Imagegroup', 'Linegroup'
+         return true
+      else
+         mes = "#{array[0][0].class} は poem に含められません：\n #{File.basename(@file)} line: #{@lineno}"
+         print_error(mes)
+      end
+   end
+
+   def valid_syntax_at_linegroup?(array)
+      case array[0][0].class.to_s
+      when 'Linegroup', 'Image', 'Imagegroup', 'Prodnote', 'Note', 'Noteref', 'Annoref', 'Annotation', 'Quote', 'Paragraph'
+         return true
+      else
+         mes = "#{array[0][0].class} は linegroup に含められません：\n #{File.basename(@file)} line: #{@lineno}"
+         print_error(mes)
+      end
+   end
+
    def note?(obj)
       obj.instance_of?(Note)
    end

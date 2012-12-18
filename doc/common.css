@@ -279,6 +279,13 @@ blockquote {
   margin-top: 0.6em;
   margin-bottom: 0.6em;
 }
+blockquote.border {
+  display: block;
+  margin-left: 2em;
+  margin-top: 0.6em;
+  margin-bottom: 0.6em;
+  border: 1px solid black;
+}
 
 line {
   display: block;
@@ -565,6 +572,13 @@ tfoot {
 
 td {
   display: table-cell;
+/*  border: 1px solid gray;*/
+  vertical-align: inherit;
+  text-align: inherit;
+  padding: 0.5em;
+}
+table[rules="all"] td {
+  display: table-cell;
   border: 1px solid gray;
   vertical-align: inherit;
   text-align: inherit;
@@ -573,12 +587,21 @@ td {
 
 th {
   display: table-cell;
+/*  border: 1px solid gray;*/
+  vertical-align: inherit;
+  font-weight: bold;
+  padding: 2px;
+}
+table[rules="all"] th {
+  display: table-cell;
   border: 1px solid gray;
   vertical-align: inherit;
   font-weight: bold;
   padding: 2px;
 }
-
+td[nowrap="nowrap"], th[nowrap="nowrap"] {
+  white-space: nowrap;
+}
 
 /* ------------------------------------------------------------- */
 /*                          images                               */
@@ -663,7 +686,4 @@ span[class="small-caps"] {
 [class="indent_-1"] {
   margin-left: 3em;
   text-indent: -1em;
-}
-[class="border"] {
-  border: 1px solid black;
 }

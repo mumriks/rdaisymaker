@@ -88,12 +88,16 @@ class Table < Tag
    def initialize(arg, border = nil)
       @tag = 'table'
       @arg = arg
-      @border = border
+      @border = set_border(border)
    end
    attr_accessor :border, :endId
 
    def compile_xml(daisy)
       daisy.compile_table_tag(self)
+   end
+   def set_border(border)
+      return false if "" == border or border.nil?
+      return true
    end
 end
 
@@ -219,16 +223,47 @@ class Sidebar < Footnote
    end
 end
 
-class Linenum < Footnote
-   def initialize(arg)
-      @tag = ''
+class Linegroup < Tag
+   def initialize(arg = nil)
+      @tag = 'linegroup'
+      @arg = arg
+   end
+   attr_accessor :navid, :ncxsrc, :startnum
+
+   def compile_xml(daisy)
+      daisy.compile_linegroup_tag(self)
+   end
+end
+
+class Line < Linegroup
+   def initialize(arg = nil)
+      @tag = 'line'
       @arg = arg
    end
    attr_accessor :navid, :ncxsrc
-
    def compile_xml(daisy)
+      daisy.compile_linegroup_tag(self)
    end
-   def compile_smil(daisy)
+end
+
+class Poem < Tag
+   def initialize(arg = nil)
+      @tag = 'poem'
+      @arg = arg
+   end
+   attr_accessor :title, :author
+   def compile_xml(daisy)
+      daisy.compile_poem_tag(self)
+   end
+end
+
+class Dateline < Tag
+   def initialize(arg = nil)
+      @tag = 'dateline'
+      @arg = arg
+   end
+   def compile_xml(daisy)
+      daisy.compile_dateline_tag(self)
    end
 end
 

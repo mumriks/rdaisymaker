@@ -254,19 +254,17 @@ EOT
    end
 
    def compile_table_tag(phr)
-      if phr.border
-         @xfile.puts(indent(%Q[<table border="1" id="#{phr.arg}">], @xindent))
-         @xindent += 2
-      elsif %r!\A/! =~ phr.tag
+      if %r!\A/! =~ phr.tag
          @xindent -= 2
          @xfile.puts(indent("<#{phr.tag}>", @xindent))
       elsif %r!\s/! =~ phr.tag
          @xfile.puts(indent("<#{phr.tag}>", @xindent))
       elsif 'table' == phr.tag
-         @xfile.puts(indent(%Q[<table id="#{phr.arg}">], @xindent))
-         @xindent += 2
-      elsif 'nowrap' == phr.style
-         @xfile.puts(indent(%Q[<#{phr.tag} class="nowrap">], @xindent))
+         if phr.border
+            @xfile.puts(indent(%Q[<table border="1" id="#{phr.arg}">], @xindent))
+         else
+            @xfile.puts(indent(%Q[<table border="" id="#{phr.arg}">], @xindent))
+         end
          @xindent += 2
       else
          @xfile.puts(indent("<#{phr.tag}>", @xindent))
@@ -330,6 +328,53 @@ EOT
          @header = true
       end
    end
+
+   def compile_linegroup_tag(phr)
+      if %r!\A/! =~ phr.tag
+         @xindent -= 2
+         @xfile.puts(indent("</span>", @xindent))
+         @xfile.puts(indent("<br />", @xindent)) if '/line' == phr.tag
+      else
+         @xfile.puts(indent(%Q[<span id="#{phr.arg}">], @xindent))
+         @xindent += 2
+         @header = true
+      end
+   end
+
+   alias :compile_poem_tag :compile_linegroup_tag
+   alias :compile_dateline_tag :compile_linegroup_tag
+
+   def compile_line_sentence(phr)
+      print_sentence(phr)
+   end
+
+   def compile_dateline_sentence(phr)
+      phr.phrase = tag_date(phr.phrase)
+      print_sentence(phr)
+   end
+
+   def make_poem_title_author(phr, tag)
+      @xfile.puts(indent("<#{tag}>", @xindent))
+      @xindent += 2
+      print_sentence(phr)
+      @xindent -= 2
+      @xfile.puts(indent("</#{tag}>", @xindent))
+   end
+
+   def compile_poem_title(phr)
+      make_poem_title_author(phr, "span")
+   end
+
+   def compile_poem_author(phr)
+      make_poem_title_author(phr, "span")
+   end
+
+   def compile_linenum_sentence(phr)
+      smilstr, idstr = compile_id(phr)
+      phr.ncxsrc = smilstr
+      @xfile.puts(indent(%Q[<span id="#{idstr}" smilref="#{smilstr}">#{phr.phrase}</span>], @xindent))
+   end
+
 
    def smil_header
 #      @sfile.puts <<EOT
@@ -590,6 +635,8 @@ EOT
       @sfile.puts(indent(%Q[<text src="#{xmlfilename}#t#{tnum}" id="phr#{phrnum}_text"/>], @indent + 2))
       @sfile.puts(indent(%Q[</par>], @indent))
    end
+
+   alias :compile_smil_linenum :compile_smil_text
 end
 
 class AudioFullTextDaisy4

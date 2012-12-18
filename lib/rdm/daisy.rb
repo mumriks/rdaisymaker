@@ -157,8 +157,8 @@ class Meta
       @author = values["author"].nil? ? nil : values["author"]
       @translator = values["trl"].nil? ? nil : values["trl"]
       @editor = values["edt"].nil? ? nil : values["edt"]
-      @illustlator = values["ill"].nil? ? nil :values["ill"]
-      @photographer = values["pht"].nil? ? nil :values["pht"]
+      @illustlator = values["ill"].nil? ? nil : values["ill"]
+      @photographer = values["pht"].nil? ? nil : values["pht"]
       @language = values["language"].nil? ? "ja" : values["language"]
       @pageDirection = values["pagedirection"].nil? ? "ltr" : values["pagedirection"]
       @iUid = UUID.create
